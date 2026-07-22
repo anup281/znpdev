@@ -2,9 +2,7 @@
 $launchers=[
  ['label'=>'Progress','description'=>'Site and building workflows','href'=>'progress.php?project_id='.$projectId,'icon'=>'▤','primary'=>true],
  ['label'=>'Daily Log','description'=>'Daily field reports','href'=>'daily_logs.php?project_id='.$projectId,'icon'=>'✎'],
- ['label'=>'Calendar','description'=>'Project dates and events','href'=>'calendar.php?project_id='.$projectId,'icon'=>'▣'],
  ['label'=>'Project Team','description'=>'Vendors and project contacts','href'=>'project_team.php?project_id='.$projectId,'icon'=>'♟'],
- ['label'=>'Tasks','description'=>'Tasks and walkthrough notes','href'=>'tasks.php?project_id='.$projectId,'icon'=>'✓'],
  ['label'=>'Plans & Documents','description'=>'Project plans and files','href'=>'documents.php?project_id='.$projectId,'icon'=>'▱'],
  ['label'=>'Photos','description'=>'Project photo library','href'=>'photos.php?project_id='.$projectId,'icon'=>'▧'],
 ];

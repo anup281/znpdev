@@ -150,7 +150,7 @@ function dev_active_project_id(int $candidate=0): int {
     return $fallback;
 }
 function dev_company_trade_names(int $companyId): string {
-    $s=db()->prepare("SELECT GROUP_CONCAT(t.trade_name ORDER BY t.display_order,t.trade_name SEPARATOR ', ') FROM construction_company_trades ct JOIN construction_trades t ON t.id=ct.construction_trade_id AND t.is_active=1 WHERE ct.construction_company_id=?");
+    $s=db()->prepare("SELECT GROUP_CONCAT(t.trade_name ORDER BY t.display_order,t.trade_name SEPARATOR ', ') FROM construction_company_trades ct JOIN construction_trades t ON t.id=ct.construction_trade_id AND t.is_active=1 WHERE ct.construction_company_id=? AND ct.archived_at IS NULL");
     $s->execute([$companyId]);
     $v=trim((string)$s->fetchColumn());
     if($v!=='') return $v;

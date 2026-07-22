@@ -54,6 +54,32 @@ if (!function_exists('znp_workspace_navigation_config')) {
     }
 }
 
+if (!function_exists('znp_workspace_base_path')) {
+    /**
+     * Return the directory in which this copy of the platform is installed.
+     * Examples: /dev/index.php => "", /test/dev/index.php => "/test".
+     */
+    function znp_workspace_base_path(): string
+    {
+        $script = '/' . ltrim(str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+        if (preg_match('#^(.*?)/(?:admin|dev|portal|manage)(?:/|$)#', $script, $matches)) {
+            return rtrim((string)$matches[1], '/');
+        }
+        return '';
+    }
+}
+
+if (!function_exists('znp_workspace_url')) {
+    function znp_workspace_url(string $path): string
+    {
+        if ($path === '' || $path[0] !== '/') {
+            return $path;
+        }
+        $base = znp_workspace_base_path();
+        return $base . $path;
+    }
+}
+
 if (!function_exists('znp_workspace_identity')) {
     function znp_workspace_identity(): array
     {
@@ -150,7 +176,7 @@ if (!function_exists('znp_render_workspace_icons')) {
 
             $attributes = [
                 'class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '"',
-                'href="' . htmlspecialchars((string)$item['href'], ENT_QUOTES, 'UTF-8') . '"',
+                'href="' . htmlspecialchars(znp_workspace_url((string)$item['href']), ENT_QUOTES, 'UTF-8') . '"',
                 'data-label="' . htmlspecialchars((string)$item['label'], ENT_QUOTES, 'UTF-8') . '"',
                 'aria-label="' . htmlspecialchars((string)$item['label'], ENT_QUOTES, 'UTF-8') . '"',
             ];

@@ -6,10 +6,10 @@ $projectId=dev_active_project_id((int)($_GET['project_id']??$_POST['project_id']
 $headerProjects=dev_projects();
 $currentUser=admin_user();
 $currentProject=$projectId?dev_project($projectId):null;
-$projectPages=['project.php','progress.php','calendar.php','buildings.php','schedule.php','tasks.php','documents.php','project_team.php','daily_logs.php','photo_recovery.php','photos.php','expenses.php'];
+$projectPages=['project.php','progress.php','buildings.php','schedule.php','documents.php','project_team.php','daily_logs.php','photo_recovery.php','photos.php','expenses.php'];
 $projectsActive=in_array($current,array_merge(['projects.php'],$projectPages),true);
 $insideActiveProject=$projectId>0 && in_array($current,$projectPages,true) && $currentProject && dev_can_access($projectId);
-$projectTabMap=['project.php'=>'overview','progress.php'=>'progress','buildings.php'=>'progress','schedule.php'=>'progress','calendar.php'=>'calendar','tasks.php'=>'tasks','documents.php'=>'documents','project_team.php'=>'team','daily_logs.php'=>'logs','photo_recovery.php'=>'logs','photos.php'=>'photos','expenses.php'=>'expenses'];
+$projectTabMap=['project.php'=>'overview','progress.php'=>'progress','buildings.php'=>'progress','schedule.php'=>'progress','documents.php'=>'documents','project_team.php'=>'team','daily_logs.php'=>'logs','photo_recovery.php'=>'logs','photos.php'=>'photos','expenses.php'=>'expenses'];
 $activeProjectTab=$projectTabMap[$current]??'';
 $mobileProjectId=$projectId;
 $projectUrl=static function(string $page) use ($mobileProjectId): string {
@@ -43,9 +43,7 @@ $projectUrl=static function(string $page) use ($mobileProjectId): string {
 <div class="project-context"><strong>CURRENT PROJECT: <?=e(strtoupper((string)$currentProject['project_name']))?></strong></div>
 <nav class="project-nav" aria-label="Project sections">
 <a class="<?=$activeProjectTab==='overview'?'active':''?>" href="project.php?project_id=<?=$projectId?>">Overview</a>
-<a class="<?=$activeProjectTab==='calendar'?'active':''?>" href="calendar.php?project_id=<?=$projectId?>">Calendar</a>
 <a class="<?=$activeProjectTab==='progress'?'active':''?>" href="progress.php?project_id=<?=$projectId?>">Progress</a>
-<a class="<?=$activeProjectTab==='tasks'?'active':''?>" href="tasks.php?project_id=<?=$projectId?>">Tasks</a>
 <a class="<?=$activeProjectTab==='documents'?'active':''?>" href="documents.php?project_id=<?=$projectId?>">Plans & Documents</a>
 <a class="<?=$activeProjectTab==='team'?'active':''?>" href="project_team.php?project_id=<?=$projectId?>">Project Team</a>
 <a class="<?=$activeProjectTab==='expenses'?'active':''?>" href="expenses.php?project_id=<?=$projectId?>">Expenses</a>
@@ -58,12 +56,10 @@ $projectUrl=static function(string $page) use ($mobileProjectId): string {
 <a class="<?=$activeProjectTab==='progress'?'active':''?>" href="<?=e($projectUrl('progress.php'))?>"><span aria-hidden="true">▤</span>Progress</a>
 <a class="<?=$activeProjectTab==='logs'?'active':''?>" href="<?=e($projectUrl('daily_logs.php'))?>"><span aria-hidden="true">✎</span>Daily Log</a>
 <a class="<?=$activeProjectTab==='team'?'active':''?>" href="<?=e($projectUrl('project_team.php'))?>"><span aria-hidden="true">♟</span>Project Team</a>
-<a class="<?=$activeProjectTab==='tasks'?'active':''?>" href="<?=e($projectUrl('tasks.php'))?>"><span aria-hidden="true">✓</span>Tasks</a>
 <details class="mobile-more-native"><summary><span aria-hidden="true">•••</span>More</summary><div class="mobile-more-sheet">
 <a href="<?=e($projectUrl('documents.php'))?>">Plans &amp; Documents</a>
 <a href="<?=e($projectUrl('expenses.php'))?>">Expenses</a>
 <a href="<?=e($projectUrl('photos.php'))?>">Photos</a>
-<a href="<?=e($projectUrl('calendar.php'))?>">Calendar</a>
 <?php if(dev_is_super()):?><a href="companies.php">Vendor Directory</a><?php endif;?>
 </div></details>
 </nav>
