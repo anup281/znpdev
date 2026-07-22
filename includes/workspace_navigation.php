@@ -61,6 +61,9 @@ if (!function_exists('znp_workspace_base_path')) {
      */
     function znp_workspace_base_path(): string
     {
+        if (function_exists('app_base_path')) {
+            return app_base_path();
+        }
         $script = '/' . ltrim(str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '')), '/');
         if (preg_match('#^(.*?)/(?:admin|dev|portal|manage)(?:/|$)#', $script, $matches)) {
             return rtrim((string)$matches[1], '/');
@@ -72,6 +75,9 @@ if (!function_exists('znp_workspace_base_path')) {
 if (!function_exists('znp_workspace_url')) {
     function znp_workspace_url(string $path): string
     {
+        if (function_exists('app_url')) {
+            return app_url($path);
+        }
         if ($path === '' || $path[0] !== '/') {
             return $path;
         }

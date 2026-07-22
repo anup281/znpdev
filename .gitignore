@@ -1,0 +1,24 @@
+# Environment-specific configuration and secrets
+config.local.php
+.env
+.env.*
+!.env.example
+
+# Runtime uploads and generated documents (retain access-control files)
+uploads/**
+!uploads/**/
+!uploads/**/.htaccess
+data/documents/**
+!data/documents/**/
+!data/documents/**/.htaccess
+
+# Logs, caches, and temporary files
+*.log
+*.tmp
+*.cache
+
+# Editor and operating-system metadata
+.idea/
+.vscode/
+Thumbs.db
+

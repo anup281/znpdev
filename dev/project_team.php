@@ -11,15 +11,16 @@ function project_team_phone_format(string $phone): string {
 }
 try{$q=db()->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='construction_project_contacts'");$q->execute();$projectContactsReady=(int)$q->fetchColumn()>0;}catch(Throwable $ignored){}
 
-if(isset($_GET['remove'])){
-    $assignmentId=(int)$_GET['remove'];
-    db()->prepare('DELETE FROM construction_project_companies WHERE id=? AND construction_project_id=?')->execute([$assignmentId,$projectId]);
-    header("Location: project_team.php?project_id=$projectId");exit;
-}
-
 if($_SERVER['REQUEST_METHOD']==='POST')try{
     if(!csrf_check((string)($_POST['csrf']??'')))throw new RuntimeException('Session expired.');
     $action=(string)($_POST['action']??'assign');
+    if($action==='remove_assignment'){
+        $assignmentId=(int)($_POST['assignment_id']??0);
+        if($assignmentId<1)throw new RuntimeException('Project Team assignment was not found.');
+        $q=db()->prepare('DELETE FROM construction_project_companies WHERE id=? AND construction_project_id=?');$q->execute([$assignmentId,$projectId]);
+        if(!$q->rowCount())throw new RuntimeException('Project Team assignment was not found.');
+        header("Location: project_team.php?project_id=$projectId&removed=1");exit;
+    }
     if(in_array($action,['add_project_contact','remove_project_contact'],true)){
         if(!dev_is_super())throw new RuntimeException('Only an Admin or Super Admin may manage project contacts.');
         if(!$projectContactsReady)throw new RuntimeException('Install the Version 5.2.0 Project Contacts upgrade first.');
@@ -83,10 +84,11 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
 <style>.project-team-area-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:22px}.project-team-area-button{min-height:92px;justify-content:flex-start;text-align:left;padding:20px;border:2px solid var(--line);background:#fff;color:var(--navy);font-size:17px}.project-team-area-button span{display:block}.project-team-area-button small{display:block;margin-top:5px;color:var(--muted);font-weight:500}.project-team-area-button.is-active{border-color:var(--blue);background:var(--pale);box-shadow:inset 4px 0 0 var(--blue)}.project-team-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:4px 0 18px}.project-team-section-head h2{margin:0 0 5px}.project-team-section[hidden]{display:none}@media(max-width:700px){.project-team-area-picker{grid-template-columns:1fr}.project-team-section-head{align-items:stretch;flex-direction:column}.project-team-section-head .actions{display:grid}.project-team-section-head .btn,.project-team-section-head button{width:100%}}</style>
 <div class="page-head project-page-actions"><div><h1>Project Team</h1><p class="muted">Choose the type of project team member you want to view.</p></div></div>
 <?php if(isset($_GET['saved'])):?><div class="card notice-success">Project Team assignment saved.</div><?php endif;?>
+<?php if(isset($_GET['removed'])):?><div class="card notice-success">Project Team assignment removed.</div><?php endif;?>
 <?php if(isset($_GET['contact_saved'])):?><div class="card notice-success">Project contact added.</div><?php endif;?>
 <?php if(isset($_GET['contact_removed'])):?><div class="card notice-success">Project contact removed.</div><?php endif;?>
 <?php if($error):?><div class="card notice-error"><?=e($error)?></div><?php endif;?>
-<?php if(dev_is_super()&&!$projectContactsReady):?><div class="card notice-warning">Run <strong>install_v5_2_0_project_contacts.php</strong> to enable non-vendor project contacts.</div><?php endif;?>
+<?php if(dev_is_super()&&!$projectContactsReady):?><div class="card notice-warning">The project contacts database table is not installed in this environment.</div><?php endif;?>
 
 <div class="project-team-area-picker" role="group" aria-label="Project Team areas"><button type="button" class="project-team-area-button" data-team-area="trades" aria-pressed="false"><span>TRADES<small>Vendors and assigned trade partners</small></span></button><button type="button" class="project-team-area-button" data-team-area="contacts" aria-pressed="false"><span>THIRD PARTY CONTACTS<small>Architects, engineers, agencies and inspectors</small></span></button></div>
 
@@ -143,7 +145,7 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
 <div><label>Company</label><input class="assign-company-display" type="text" readonly></div><div><label>Contact</label><input class="assign-contact-display" type="text" readonly></div><div><label>Phone</label><input class="assign-phone-display" type="text" readonly></div><div><label>Email</label><input class="assign-email-display" type="text" readonly></div>
 <div class="form-full"><label>Notes</label><textarea name="notes"><?=e($r['notes'])?></textarea></div><div class="form-full"><button class="primary">Save Assignment</button></div>
 </form>
-<div class="actions project-team-detail-actions"><a class="btn btn-secondary" href="vendor_profile.php?id=<?=$r['construction_company_id']?>">Vendor Profile</a><a class="btn btn-danger" data-confirm="Remove this Project Team assignment?" href="project_team.php?project_id=<?=$projectId?>&remove=<?=$r['id']?>">Remove From Project</a></div>
+<div class="actions project-team-detail-actions"><a class="btn btn-secondary" href="vendor_profile.php?id=<?=$r['construction_company_id']?>">Vendor Profile</a><form method="post" onsubmit="return confirm('Remove this Project Team assignment?');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="remove_assignment"><input type="hidden" name="assignment_id" value="<?=$r['id']?>"><button class="btn btn-danger" type="submit">Remove From Project</button></form></div>
 </div></div>
 <?php endforeach;?>
 

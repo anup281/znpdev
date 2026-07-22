@@ -10,6 +10,7 @@ if (!function_exists('znp_workspace_document_start')) {
      * repeated document/head boilerplate and shared workspace header CSS.
      */
     function znp_workspace_document_start(string $title, string $bodyClass, string $stylesheet, string $stylesheetVersion = ''): void {
+        if (str_starts_with($stylesheet, '/') && function_exists('app_url')) $stylesheet = app_url($stylesheet);
         $href = $stylesheet . ($stylesheetVersion !== '' ? '?v=' . rawurlencode($stylesheetVersion) : '');
         echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
         echo '<title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</title>';
@@ -24,6 +25,7 @@ if (!function_exists('znp_render_workspace_brand')) {
     /** Render the identical white workspace brand badge in every portal. */
     function znp_render_workspace_brand(string $portalTitle, string $href, string $ariaLabel, string $extraClass = ''): void {
         $class = trim($extraClass . ' znp-workspace-brand');
+        if (str_starts_with($href, '/') && function_exists('app_url')) $href = app_url($href);
         echo '<a class="' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '" href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" aria-label="' . htmlspecialchars($ariaLabel, ENT_QUOTES, 'UTF-8') . '">';
         echo '<span>ZNP</span><strong>' . htmlspecialchars(strtoupper($portalTitle), ENT_QUOTES, 'UTF-8') . '</strong></a>';
     }

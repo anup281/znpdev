@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/includes/auth.php';
 
 if (admin_user()) { header('Location: '.login_destination()); exit; }
-if (investor_user() && (($_GET['tab'] ?? '') === 'investor' || !isset($_GET['tab']))) { header('Location: /portal/'); exit; }
+if (investor_user() && (($_GET['tab'] ?? '') === 'investor' || !isset($_GET['tab']))) { header('Location: '.app_url('/portal/')); exit; }
 
 $pageTitle='Login | ZNP Development';
 $activePage='login';
@@ -77,7 +77,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                         } else {
                             $_SESSION['investor_verification_token']=$token;
                             $_SESSION['investor_verification_email']=$email;
-                            header('Location: /portal/verify.php');exit;
+                            header('Location: '.app_url('/portal/verify.php'));exit;
                         }
                     }
                 } catch(Throwable $e){
@@ -120,7 +120,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 require __DIR__.'/includes/header.php';
 ?>
 <main class="public-login-shell"><section class="public-login-card">
-<div class="portal-tabs" role="tablist"><a class="<?=$tab==='investor'?'active':''?>" href="/login.php?tab=investor">Investor</a><a class="<?=$tab==='vendor'?'active':''?>" href="/login.php?tab=vendor">Vendor</a></div>
+<div class="portal-tabs" role="tablist"><a class="<?=$tab==='investor'?'active':''?>" href="<?=e(app_url('/login.php?tab=investor'))?>">Investor</a><a class="<?=$tab==='vendor'?'active':''?>" href="<?=e(app_url('/login.php?tab=vendor'))?>">Vendor</a></div>
 <?php if($tab==='investor'):?>
 <form method="post" class="portal-login-form investor-login-form">
 <input type="hidden" name="portal_type" value="investor"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">

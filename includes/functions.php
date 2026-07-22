@@ -1,5 +1,16 @@
 <?php
 declare(strict_types=1);
+
+function app_base_path(): string {
+ $script='/'.ltrim(str_replace('\\','/',(string)($_SERVER['SCRIPT_NAME']??'')),'/');
+ if(preg_match('#^(.*?)/(?:admin|dev|portal|manage|lead)(?:/|$)#',$script,$matches))return rtrim((string)$matches[1],'/');
+ $directory=rtrim(str_replace('\\','/',dirname($script)),'/');
+ return $directory==='/'?'':$directory;
+}
+function app_url(string $path=''): string {
+ if($path===''||str_starts_with($path,'#')||preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i',$path))return $path;
+ return app_base_path().'/'.ltrim($path,'/');
+}
 function e(?string $v): string { return htmlspecialchars($v ?? '',ENT_QUOTES,'UTF-8'); }
 function csrf_token(): string {
  if(session_status()!==PHP_SESSION_ACTIVE) session_start();

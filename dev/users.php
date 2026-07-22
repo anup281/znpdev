@@ -7,6 +7,11 @@ function dev_admin_password_column_v3(): ?string {
     foreach($cols as $c){if(in_array($c['Field'],['password_hash','password','passwd'],true))return $c['Field'];}
     return null;
 }
+function dev_construction_user_exists(int $userId): bool {
+    $check=db()->prepare("SELECT id FROM admin_users WHERE id=? AND COALESCE(construction_only,0)=1 AND LOWER(REPLACE(role,'_',' ')) NOT IN ('super admin','super administrator','admin','administrator')");
+    $check->execute([$userId]);
+    return (bool)$check->fetchColumn();
+}
 if($_SERVER['REQUEST_METHOD']==='POST'&&csrf_check((string)($_POST['csrf']??''))){
  try{
   $action=(string)($_POST['action']??'');
@@ -24,6 +29,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&csrf_check((string)($_POST['csrf']??''))
     $message='Construction user created and project access assigned.';
   } elseif($action==='save_access'){
     $userId=(int)($_POST['admin_user_id']??0);if($userId<1)throw new RuntimeException('Select a user.');
+    if(!dev_construction_user_exists($userId))throw new RuntimeException('Construction user not found or cannot be managed here.');
     $role=(string)($_POST['project_role']??'Field Staff / Helper');$selected=array_unique(array_filter(array_map('intval',(array)($_POST['project_ids']??[]))));
     db()->prepare('UPDATE construction_project_users SET is_active=0 WHERE admin_user_id=?')->execute([$userId]);
     $ins=db()->prepare('INSERT INTO construction_project_users(construction_project_id,admin_user_id,project_role,is_active,created_at) VALUES(?,?,?,1,NOW()) ON DUPLICATE KEY UPDATE project_role=VALUES(project_role),is_active=1');
@@ -39,18 +45,18 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&csrf_check((string)($_POST['csrf']??''))
     if(strlen($password)<8)throw new RuntimeException('Temporary password must be at least 8 characters.');
     if($password!==$confirm)throw new RuntimeException('The password confirmation does not match.');
     $pc=dev_admin_password_column_v3();if(!$pc)throw new RuntimeException('Could not identify the password column in admin_users.');
-    $check=db()->prepare("SELECT id FROM admin_users WHERE id=? AND (COALESCE(construction_only,0)=1 OR LOWER(REPLACE(role,'_',' ')) IN ('super admin','super administrator','admin','administrator'))");
-    $check->execute([$userId]);if(!$check->fetchColumn())throw new RuntimeException('User not found or cannot be managed here.');
+    if(!dev_construction_user_exists($userId))throw new RuntimeException('Construction user not found or cannot be managed here.');
     db()->prepare("UPDATE admin_users SET `$pc`=?,must_change_password=?,failed_login_attempts=0,locked_until=NULL WHERE id=?")->execute([password_hash($password,PASSWORD_DEFAULT),$requireChange,$userId]);
     $message='Password reset successfully.';
   } elseif($action==='toggle_user'){
     $userId=(int)($_POST['admin_user_id']??0);$active=(int)($_POST['is_active']??0);
+    if(!dev_construction_user_exists($userId))throw new RuntimeException('Construction user not found or cannot be managed here.');
     db()->prepare('UPDATE admin_users SET is_active=? WHERE id=? AND COALESCE(construction_only,0)=1')->execute([$active,$userId]);$message=$active?'User activated.':'User deactivated.';
   }
  }catch(Throwable $e){$error=$e->getMessage();}
 }
 $projects=dev_projects();
-$users=db()->query("SELECT id,full_name,username,email,role,is_active,COALESCE(construction_only,0) construction_only,COALESCE(construction_role,'') construction_role,last_login_at FROM admin_users WHERE COALESCE(construction_only,0)=1 OR LOWER(REPLACE(role,'_',' ')) IN ('super admin','super administrator','admin','administrator') ORDER BY construction_only DESC,full_name")->fetchAll();
+$users=db()->query("SELECT id,full_name,username,email,role,is_active,COALESCE(construction_only,0) construction_only,COALESCE(construction_role,'') construction_role,last_login_at FROM admin_users WHERE COALESCE(construction_only,0)=1 AND LOWER(REPLACE(role,'_',' ')) NOT IN ('super admin','super administrator','admin','administrator') ORDER BY full_name")->fetchAll();
 $assignRows=db()->query('SELECT construction_project_id,admin_user_id,project_role FROM construction_project_users WHERE is_active=1')->fetchAll();$assign=[];foreach($assignRows as $r){$assign[(int)$r['admin_user_id']][(int)$r['construction_project_id']]=$r['project_role'];}
 ?>
 <div class="page-head"><div><h1>Construction Users</h1><p class="muted">Create field users and give each person access to one or multiple projects.</p></div></div>

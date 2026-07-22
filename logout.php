@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/includes/functions.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
@@ -7,5 +8,5 @@ if (ini_get('session.use_cookies')) {
     setcookie(session_name(), '', time()-42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
 }
 session_destroy();
-header('Location: /login.php');
+header('Location: '.app_url('/login.php'));
 exit;

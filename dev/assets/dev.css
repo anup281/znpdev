@@ -2,9 +2,7 @@
 .notice-success{border-left:4px solid var(--green);margin-bottom:18px}.notice-error{border-left:4px solid var(--red);margin-bottom:18px}.building-card-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.building-card h2{margin:14px 0 6px}.progress,.mini-progress{height:9px;background:#e7edf2;border-radius:999px;overflow:hidden}.progress span,.mini-progress span{display:block;height:100%;background:var(--blue);border-radius:inherit}.compact-details{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:16px 0}.compact-details dt{font-weight:700;color:var(--muted)}.compact-details dd{margin:0}.schedule-form{margin-bottom:22px}.schedule-summary{margin-bottom:20px}.schedule-table-wrap{padding:0;overflow:auto}.schedule-table{min-width:1100px}.schedule-table td strong,.schedule-table td small{display:block}.schedule-table td small{margin-top:4px;color:var(--muted)}.schedule-table .row-late{background:#fff7f7}.schedule-edit{background:#f8fbfd;padding:18px;border-radius:8px}.btn-small{padding:7px 10px;font-size:12px}.mini-progress{width:90px;height:7px}.inline-add{display:flex;align-items:flex-end;gap:12px;margin-bottom:20px}.inline-add>div{flex:1}.no-top{margin-top:0}.project-quick-actions{margin:18px 0 0}.status-not-started{background:#edf1f4;color:#5d6974}.status-inspection{background:#e8f0ff;color:#315f9e}.status-on-hold{background:#fff0d8;color:#8a5b12}
 @media(max-width:700px){.inline-add{flex-direction:column;align-items:stretch}.schedule-table-wrap{margin-left:-1%;margin-right:-1%}.building-card .actions .btn{flex:1}}
 .section-title{margin:26px 0 12px}.workflow-list{display:grid;gap:10px}.workflow-card{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 18px}.workflow-main{display:flex;align-items:center;gap:14px;min-width:0}.workflow-seq{width:34px;height:34px;border-radius:50%;background:var(--pale);color:var(--blue);font-weight:800;display:grid;place-items:center;flex:0 0 auto}.workflow-card h3,.completed-card h3{margin:0 0 7px}.workflow-meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}.workflow-actions{display:flex;gap:8px;flex:0 0 auto}.workflow-late{border-left:4px solid var(--red)}.btn-complete{background:var(--green);color:#fff}.completed-section{margin-top:26px}.completed-toggle{width:100%;justify-content:space-between;background:var(--navy);color:#fff;font-size:16px;padding:14px 18px}.completed-list{display:grid;gap:10px;margin-top:10px}.completed-card{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;background:#f7fbf8;border-left:4px solid var(--green)}.attachment-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.attachment-list a{color:var(--blue);text-decoration:none}.dev-modal[hidden]{display:none}.dev-modal{position:fixed;inset:0;background:rgba(8,23,39,.62);z-index:100;display:grid;place-items:center;padding:20px}.dev-modal-panel{background:#fff;border-radius:14px;padding:24px;width:min(720px,96vw);max-height:92vh;overflow:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)}.modal-close{position:absolute;right:12px;top:10px;background:none;color:var(--muted);font-size:28px;padding:4px 9px}.modal-open{overflow:hidden}.status-delayed{background:#fde7e7;color:#9b2929}.attachment-list a:hover{text-decoration:underline}@media(max-width:700px){.workflow-card,.completed-card{align-items:stretch;flex-direction:column}.workflow-actions{width:100%}.workflow-actions .btn{flex:1}.workflow-meta{gap:8px 12px}}
-/* Construction Portal v2.3 */
-.calendar-toolbar{display:flex;gap:16px;align-items:end;flex-wrap:wrap}.calendar-toolbar label{min-width:220px}.calendar-month{margin:24px 0 10px;border-bottom:1px solid var(--line);padding-bottom:8px}.calendar-month:first-child{margin-top:0}.calendar-event{display:flex;gap:16px;align-items:center;text-decoration:none;color:inherit;padding:12px;border-bottom:1px solid var(--line);border-radius:8px}.calendar-event:hover{background:var(--pale)}.calendar-date{width:52px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px;background:#fff;flex:0 0 auto}.calendar-date strong,.calendar-date small,.calendar-event>span:last-child strong,.calendar-event>span:last-child small{display:block}.calendar-date strong{font-size:21px}.calendar-event small{color:var(--muted);margin-top:4px}.task-filters{display:flex;gap:8px;flex-wrap:wrap}.task-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.task-card h2{font-size:19px}.task-overdue{border-left:4px solid var(--red)}.task-comments{border-top:1px solid var(--line);margin-top:18px;padding-top:12px}.task-comments small{color:var(--muted)}.contractor-card h2{margin:12px 0 8px}.table-scroll{overflow:auto}.status-passed{background:#e4f6eb;color:#236b45}.status-failed,.status-reinspection-required{background:#fde7e7;color:#9b2929}.status-scheduled,.status-requested{background:#e8f0ff;color:#315f9e}.dev-toast{position:fixed;right:20px;bottom:20px;background:var(--navy);color:#fff;padding:13px 18px;border-radius:8px;z-index:200}
-@media(max-width:1000px){.task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.task-grid{grid-template-columns:1fr}.calendar-toolbar{align-items:stretch}.calendar-toolbar label{min-width:100%}.calendar-event{align-items:flex-start}.project-nav{position:sticky;top:72px;z-index:15}}
+.contractor-card h2{margin:12px 0 8px}.table-scroll{overflow:auto}.status-passed{background:#e4f6eb;color:#236b45}.status-failed,.status-reinspection-required{background:#fde7e7;color:#9b2929}.status-scheduled,.status-requested{background:#e8f0ff;color:#315f9e}.dev-toast{position:fixed;right:20px;bottom:20px;background:var(--navy);color:#fff;padding:13px 18px;border-radius:8px;z-index:200}
 .project-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-top:8px}.check-card{display:flex;align-items:center;gap:9px;border:1px solid #d9e0e8;border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer}.check-card input{width:auto;margin:0}.table-wrap{overflow:auto}
 
 /* Construction Portal v3.1 UI refresh */
@@ -235,6 +233,20 @@
 }
 
 /* Patch 4.2.7 - exact Admin workspace typography */
+/* Vendor directory */
+.vendor-card[hidden],.vendor-actions [hidden],#vendorNoResults[hidden]{display:none!important}
+.vendor-page-head{align-items:flex-end}.vendor-page-head h1{margin-bottom:6px}.vendor-page-actions{display:flex;gap:10px;flex-wrap:wrap}.vendor-directory{margin-top:4px}.vendor-directory-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(135deg,#fff 0%,#f5f9fd 100%);box-shadow:0 4px 18px rgba(20,45,70,.05)}.vendor-directory-toolbar h2{margin:0 0 4px}.vendor-directory-toolbar p{margin:0;color:var(--muted)}.vendor-search{width:min(100%,430px);margin:0}.vendor-search span{display:block;margin-bottom:7px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.vendor-search input{width:100%;background:#fff}.vendor-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.vendor-card{display:flex;min-width:0;flex-direction:column;padding:20px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 5px 18px rgba(20,45,70,.06);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}.vendor-card:hover{transform:translateY(-2px);border-color:#c5d7e7;box-shadow:0 10px 26px rgba(20,45,70,.1)}.vendor-card.is-editing{border-color:var(--blue);box-shadow:0 0 0 3px rgba(23,75,131,.1)}.vendor-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:17px}.vendor-trade-pill{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border-radius:999px;background:#e8f1fb;color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.025em}.vendor-card-status{display:inline-flex;align-items:center;gap:6px;color:#317548;font-size:12px;font-weight:750}.vendor-card-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#3ca45c;box-shadow:0 0 0 3px #e3f5e9}.vendor-card-company{display:flex;align-items:center;gap:12px;padding-bottom:17px;border-bottom:1px solid #e9eef3}.vendor-card-avatar{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#2d78ad);color:#fff;font-size:20px;font-weight:800}.vendor-card-company>div{min-width:0;flex:1}.vendor-card-company strong,.vendor-card-company small{display:block}.vendor-card-company strong{font-size:18px;line-height:1.25}.vendor-card-company strong a{text-decoration:none}.vendor-card-company small{margin-top:3px;color:var(--muted)}.vendor-card-details{display:grid;gap:0;margin:10px 0 16px}.vendor-card-details>div{display:grid;grid-template-columns:82px minmax(0,1fr);gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #edf1f4}.vendor-card-details>div:last-child{border-bottom:0}.vendor-card-details dt{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}.vendor-card-details dd{min-width:0;margin:0;overflow-wrap:anywhere}.vendor-card-details a{font-weight:650;text-decoration:none}.vendor-empty{color:var(--muted)}.vendor-edit-field{width:100%;min-width:0}.vendor-card-head .vendor-edit-field{max-width:65%}.vendor-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:auto}.vendor-actions .btn{display:inline-flex;align-items:center;justify-content:center;min-width:0;margin:0;padding:9px 10px;text-align:center}.vendor-empty-state{grid-column:1/-1;padding:36px;text-align:center}.vendor-empty-state strong{font-size:18px}.vendor-empty-state p{margin:7px 0 16px}.archived-vendors{margin-top:20px}.archived-vendor-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}.archived-vendor-row:last-child{border-bottom:0}.archived-vendor-row strong,.archived-vendor-row small{display:block}.archived-vendor-row small{margin-top:4px;color:var(--muted)}
+@media(max-width:900px){.vendor-page-head{align-items:stretch;flex-direction:column}.vendor-page-actions{display:grid;grid-template-columns:1fr 1fr}.vendor-page-actions .btn{justify-content:center;text-align:center}.vendor-directory-toolbar{align-items:stretch;flex-direction:column}.vendor-search{width:100%}.vendor-card-grid{grid-template-columns:1fr}.archived-vendor-row{align-items:stretch;flex-direction:column}.archived-vendor-row form,.archived-vendor-row button{width:100%}}
+@media(max-width:520px){.vendor-page-actions{grid-template-columns:1fr}.vendor-directory-toolbar{padding:15px}.vendor-card{padding:16px}.vendor-card:hover{transform:none}.vendor-card-company strong{font-size:17px}.vendor-card-details>div{grid-template-columns:72px minmax(0,1fr)}.vendor-actions{grid-template-columns:1fr}.vendor-actions .btn{width:100%}}
+.vendor-actions{grid-template-columns:1fr}.vendor-profile-trades{margin-bottom:20px}.vendor-profile-trades .section-heading{align-items:center}.vendor-profile-trades .section-heading h2{margin:0 0 5px}.vendor-profile-trades .section-heading p{margin:0}.vendor-profile-trade-list{display:grid;gap:10px}.vendor-profile-trade-row{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:end;padding:14px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}.vendor-profile-trade-row label span{display:block;margin-bottom:7px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.vendor-profile-trade-actions{display:flex;gap:8px}.vendor-profile-archived{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}.vendor-profile-archived summary{cursor:pointer;font-weight:750}.vendor-profile-archived[open] summary{margin-bottom:6px}
+@media(max-width:700px){.vendor-profile-trades .section-heading{align-items:stretch}.vendor-profile-trades .section-heading .btn{width:100%}.vendor-profile-trade-row{grid-template-columns:1fr}.vendor-profile-trade-actions{display:grid;grid-template-columns:1fr 1fr}.vendor-profile-trade-actions .btn{width:100%}}
+
+/* Compact vendor directory */
+.vendor-directory-toolbar{display:grid;grid-template-columns:auto minmax(260px,1fr) auto;align-items:end}.vendor-directory-summary{min-width:170px}.vendor-directory-actions{display:flex;gap:8px;align-items:center}.vendor-card-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.vendor-card{padding:17px}.vendor-card-company strong a{display:inline-block;color:var(--blue);text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;transition:text-decoration-color .15s ease}.vendor-card-company strong a:hover,.vendor-card-company strong a:focus{text-decoration-color:currentColor}.vendor-card-details{margin-bottom:0}
+@media(max-width:1100px){.vendor-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vendor-directory-toolbar{grid-template-columns:1fr 1fr}.vendor-directory-summary{grid-column:1}.vendor-search{grid-column:2;grid-row:1}.vendor-directory-actions{grid-column:1/-1;justify-content:flex-end}}
+@media(max-width:760px){.vendor-directory-toolbar{display:flex;align-items:stretch;flex-direction:column}.vendor-directory-summary,.vendor-search,.vendor-directory-actions{width:100%}.vendor-directory-actions{display:grid;grid-template-columns:1fr 1fr}.vendor-directory-actions .btn{justify-content:center;text-align:center}.vendor-card-grid{grid-template-columns:1fr}}
+@media(max-width:420px){.vendor-directory-actions{grid-template-columns:1fr}}
+
 .dev-top-admin-style .dev-workspace-toggle{
   font:inherit!important;
   font-weight:700!important;
@@ -248,95 +260,6 @@
   letter-spacing:normal!important;
 }
 
-
-/* v5.2.9: reliable Construction Portal mobile primary menu */
-@media(max-width:900px){
-  .dev-top-admin-style{overflow:visible!important}
-  .dev-top-admin-style .dev-menu{
-    display:inline-flex!important;
-    flex-direction:column!important;
-    align-items:center!important;
-    justify-content:center!important;
-    position:relative!important;
-    z-index:1003!important;
-    flex:0 0 42px!important;
-    min-width:42px!important;
-    min-height:42px!important;
-    margin-left:auto!important;
-    touch-action:manipulation!important;
-    -webkit-tap-highlight-color:transparent!important;
-  }
-  .dev-top-admin-style #devPrimaryNav{
-    display:none!important;
-    position:absolute!important;
-    left:0!important;
-    right:0!important;
-    top:100%!important;
-    z-index:1002!important;
-    width:100%!important;
-    margin:0!important;
-    padding:12px 18px 18px!important;
-    background:#0b1f3a!important;
-    box-shadow:0 14px 28px rgba(8,25,43,.25)!important;
-    flex-direction:column!important;
-    align-items:stretch!important;
-    gap:4px!important;
-    max-height:calc(100vh - 54px)!important;
-    overflow-y:auto!important;
-    overscroll-behavior:contain!important;
-  }
-  .dev-top-admin-style #devPrimaryNav.open,
-  .dev-top-admin-style #devPrimaryNav.is-open{
-    display:flex!important;
-  }
-  .dev-top-admin-style #devPrimaryNav>a,
-  .dev-top-admin-style #devPrimaryNav .dev-project-trigger{
-    width:100%!important;
-    justify-content:flex-start!important;
-    min-height:44px!important;
-  }
-  body.dev-mobile-menu-open{overflow:hidden!important}
-}
-
-/* v5.3.0: Construction mobile menu and simplified dashboard */
-@media(max-width:900px){
-  .dev-top-admin-style .dev-menu{
-    display:inline-flex!important;
-    flex-direction:row!important;
-    align-items:center!important;
-    justify-content:center!important;
-    gap:8px!important;
-    width:auto!important;
-    min-width:88px!important;
-    height:40px!important;
-    min-height:40px!important;
-    padding:0 13px!important;
-    border:1px solid rgba(255,255,255,.65)!important;
-    border-radius:999px!important;
-    background:rgba(255,255,255,.08)!important;
-    color:#fff!important;
-    font-size:12px!important;
-    font-weight:800!important;
-    letter-spacing:.08em!important;
-  }
-  .dev-top-admin-style .dev-menu:hover,
-  .dev-top-admin-style .dev-menu:focus,
-  .dev-top-admin-style .dev-menu.is-open{
-    background:#fff!important;
-    color:#102f4f!important;
-    outline:none!important;
-  }
-  .dev-menu-bars{display:flex!important;flex-direction:column!important;gap:3px!important;width:16px!important}
-  .dev-menu-bars i{display:block!important;width:16px!important;height:2px!important;margin:0!important;border-radius:999px!important;background:currentColor!important}
-  .dev-menu strong{display:block!important;color:inherit!important;font:inherit!important}
-  .dev-top-admin-style #devPrimaryNav.open,
-  .dev-top-admin-style #devPrimaryNav.is-open{
-    display:flex!important;
-    visibility:visible!important;
-    opacity:1!important;
-    pointer-events:auto!important;
-  }
-}
 
 .construction-home-hero{text-align:center;padding:44px 18px 34px}
 .construction-home-hero h1{margin:0 0 12px;color:var(--navy);font-size:clamp(30px,4vw,48px);line-height:1.05;letter-spacing:.02em}
@@ -358,49 +281,12 @@
   .construction-project-button{width:100%;min-height:118px;border-radius:28px;padding:22px 20px}
 }
 
-/* v5.3.1: external mobile menu controller fallback */
-@media(max-width:900px){
-  .dev-top-admin-style #devPrimaryNav[data-mobile-open="false"]{
-    display:none!important;
-  }
-  .dev-top-admin-style #devPrimaryNav[data-mobile-open="true"]{
-    display:flex!important;
-    visibility:visible!important;
-    opacity:1!important;
-    pointer-events:auto!important;
-    transform:none!important;
-  }
-}
-
-
-/* v5.3.2: JavaScript-independent mobile navigation and Quick Add */
-.dev-mobile-menu-state{position:absolute!important;inline-size:1px!important;block-size:1px!important;opacity:0!important;pointer-events:none!important}
-.mobile-css-modal{display:none}
-.mobile-css-modal:target{display:grid}
-.mobile-css-modal .modal-close{text-decoration:none}
-.mobile-quick-add{text-decoration:none}
-@media(max-width:900px){
-  .dev-top-admin-style .dev-mobile-menu-state:checked ~ #devPrimaryNav{
-    display:flex!important;
-    visibility:visible!important;
-    opacity:1!important;
-    pointer-events:auto!important;
-    transform:none!important;
-  }
-  .dev-top-admin-style .dev-mobile-menu-state:checked + .dev-menu{
-    background:#fff!important;
-    color:#102f4f!important;
-  }
-  .dev-top-admin-style .dev-menu{cursor:pointer!important;user-select:none!important;-webkit-user-select:none!important}
-}
-
-
-/* v5.3.3 Construction Portal stabilization */
+/* Current Construction Portal mobile navigation */
 .dev-native-menu{display:none}
 @media(max-width:900px){
   body{overflow-x:hidden!important;padding-bottom:82px!important}
   .dev-main,.card,.page-head,.table-wrap,.table-scroll{max-width:100%!important;min-width:0!important}
-  .dev-top-admin-style #devPrimaryNav,.dev-top-admin-style .dev-menu,.dev-mobile-menu-state{display:none!important}
+  .dev-top-admin-style #devPrimaryNav,.dev-top-admin-style .dev-menu{display:none!important}
   .dev-native-menu{display:block;position:relative;margin-left:auto;color:#fff}
   .dev-native-menu summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-width:88px;height:40px;padding:0 13px;border:1px solid rgba(255,255,255,.65);border-radius:999px;background:rgba(255,255,255,.08);font-size:12px;font-weight:800;letter-spacing:.08em;user-select:none}
   .dev-native-menu summary::-webkit-details-marker{display:none}

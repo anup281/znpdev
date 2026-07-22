@@ -73,7 +73,7 @@ if (!function_exists('znp_workspace_redirect_to_login')) {
     function znp_workspace_redirect_to_login(string $returnKey, string $loginUrl): void
     {
         $_SESSION[$returnKey] = $_SERVER['REQUEST_URI'] ?? '/';
-        header('Location: ' . $loginUrl);
+        header('Location: ' . app_url($loginUrl));
         exit;
     }
 }
@@ -126,7 +126,7 @@ if (!function_exists('znp_workspace_bootstrap')) {
                 znp_workspace_redirect_to_login($returnKey, $loginUrl);
             }
             if (!admin_portal_role($staff)) {
-                header('Location: /dev/');
+                header('Location: '.app_url('/dev/'));
                 exit;
             }
             $user = $staff;
@@ -141,7 +141,7 @@ if (!function_exists('znp_workspace_bootstrap')) {
             }
             $normalizedRole = function_exists('normalized_role') ? normalized_role((string)($staff['role'] ?? '')) : strtolower(str_replace('_', ' ', (string)($staff['role'] ?? '')));
             if (!in_array($normalizedRole, ['super admin', 'super administrator'], true)) {
-                header('Location: /admin/');
+                header('Location: '.app_url('/admin/'));
                 exit;
             }
             $user = $staff;

@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/../includes/auth.php';
-if(investor_user()){header('Location: /portal/');exit;}
+if(investor_user()){header('Location: '.app_url('/portal/'));exit;}
 $token=(string)($_SESSION['investor_verification_token']??'');
 $email=(string)($_SESSION['investor_verification_email']??'');
-if($token===''||$email===''){header('Location: /login.php?tab=investor');exit;}
+if($token===''||$email===''){header('Location: '.app_url('/login.php?tab=investor'));exit;}
 $error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
     $code=preg_replace('/\D+/','',(string)($_POST['code']??'')) ?: '';
@@ -27,7 +27,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                     session_regenerate_id(true);
                     $_SESSION['investor_user']=['contact_type'=>$row['contact_type'],'contact_id'=>(int)$contact['id'],'name'=>$contact['full_name'],'email'=>$contact['email'],'phone'=>$contact['phone'],'verified_at'=>date('c')];
                     unset($_SESSION['investor_verification_token'],$_SESSION['investor_verification_email']);
-                    header('Location: /portal/');exit;
+                    header('Location: '.app_url('/portal/'));exit;
                 }
             }
         }catch(Throwable $e){error_log('Investor verification failed: '.$e->getMessage());$error='Verification could not be completed. Please try again.';}
@@ -35,5 +35,5 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 $pageTitle='Verify Investor Access | ZNP Development';$activePage='login';$bodyClass='public-login-page';require __DIR__.'/../includes/header.php';
 ?>
-<main class="public-login-shell"><section class="public-login-card"><form method="post" class="portal-login-form investor-code-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><h1>Check Your Email</h1><p>Enter the six-digit code sent to <?=e($email)?>. The code expires in 10 minutes.</p><?php if($error):?><div class="status error"><?=e($error)?></div><?php endif;?><label>Verification Code<input class="verification-code-input" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus placeholder="000000"></label><button class="primary" type="submit">Verify and Continue</button><a class="admin-forgot-link" href="/login.php?tab=investor">Request a New Code</a></form></section></main>
+<main class="public-login-shell"><section class="public-login-card"><form method="post" class="portal-login-form investor-code-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><h1>Check Your Email</h1><p>Enter the six-digit code sent to <?=e($email)?>. The code expires in 10 minutes.</p><?php if($error):?><div class="status error"><?=e($error)?></div><?php endif;?><label>Verification Code<input class="verification-code-input" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus placeholder="000000"></label><button class="primary" type="submit">Verify and Continue</button><a class="admin-forgot-link" href="<?=e(app_url('/login.php?tab=investor'))?>">Request a New Code</a></form></section></main>
 <?php require __DIR__.'/../includes/footer.php';?>
