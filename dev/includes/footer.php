@@ -10,5 +10,5 @@ znp_render_workspace_footer(
     'dev-footer'
 );
 ?><div id="dev-toast" class="dev-toast" hidden></div>
-<script src="assets/dev-app.js?v=534" defer></script>
+<script src="assets/dev-app.js?v=538" defer></script>
 <?php znp_workspace_document_end(); ?>
