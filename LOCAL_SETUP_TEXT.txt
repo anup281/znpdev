@@ -1,0 +1,1 @@
+Local VS Code and GitHub setup confirmed.
