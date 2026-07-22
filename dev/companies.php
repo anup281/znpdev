@@ -1,0 +1,56 @@
+<?php
+require_once __DIR__.'/includes/bootstrap.php';
+require_once __DIR__.'/includes/functions.php';
+if(!dev_is_super()){http_response_code(403);exit('Administrator access required.');}
+$error='';$success=isset($_GET['saved']);
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ try{
+  if(!csrf_check((string)($_POST['csrf']??'')))throw new RuntimeException('Session expired. Please refresh and try again.');
+  $action=(string)($_POST['action']??'add');
+  $name=trim((string)($_POST['company_name']??''));$contact=trim((string)($_POST['primary_contact']??''));
+  $phone=trim((string)($_POST['cell_phone']??''));$email=trim((string)($_POST['email']??''));$tradeId=(int)($_POST['trade_id']??0);
+  if($tradeId<1)throw new RuntimeException('Please select a trade.');
+  if($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Please enter a valid email address.');
+  $pdo=db();$pdo->beginTransaction();
+  if($action==='update'){
+   $companyId=(int)($_POST['company_id']??0);$linkId=(int)($_POST['link_id']??0);
+   if($companyId<1||$linkId<1||$name==='')throw new RuntimeException('Vendor row could not be identified.');
+   $s=$pdo->prepare('UPDATE construction_companies SET company_name=?,primary_contact=?,cell_phone=?,email=?,updated_at=NOW() WHERE id=?');$s->execute([$name,$contact,$phone,$email,$companyId]);
+   $s=$pdo->prepare('UPDATE construction_company_trades SET construction_trade_id=?,updated_at=NOW() WHERE id=? AND construction_company_id=?');$s->execute([$tradeId,$linkId,$companyId]);
+  }elseif($action==='add_trade'){
+   $companyId=(int)($_POST['company_id']??0);if($companyId<1)throw new RuntimeException('Vendor could not be identified.');
+   $s=$pdo->prepare('INSERT INTO construction_company_trades(construction_company_id,construction_trade_id,created_at,updated_at) VALUES(?,?,NOW(),NOW())');$s->execute([$companyId,$tradeId]);
+  }else{
+   if($name==='')throw new RuntimeException('Company name is required.');
+   $s=$pdo->prepare("INSERT INTO construction_companies(company_name,primary_trade,primary_contact,office_phone,cell_phone,email,website,address,insurance_expiration,w9_on_file,license_number,notes,is_active,created_at,updated_at) VALUES(?,?,?,'',?,?,'','',NULL,0,'','',1,NOW(),NOW())");
+   $tradeNameStmt=$pdo->prepare('SELECT trade_name FROM construction_trades WHERE id=?');$tradeNameStmt->execute([$tradeId]);$tradeName=(string)$tradeNameStmt->fetchColumn();
+   $s->execute([$name,$tradeName,$contact,$phone,$email]);$companyId=(int)$pdo->lastInsertId();
+   $s=$pdo->prepare('INSERT INTO construction_company_trades(construction_company_id,construction_trade_id,created_at,updated_at) VALUES(?,?,NOW(),NOW())');$s->execute([$companyId,$tradeId]);
+  }
+  $pdo->commit();header('Location: companies.php?saved=1');exit;
+ }catch(Throwable $e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();$msg=$e->getMessage();$error=str_contains(strtolower($msg),'duplicate')?'That vendor is already assigned to the selected trade.':$msg;}
+}
+$trades=[];$rows=[];
+try{
+ $trades=db()->query('SELECT id,trade_name FROM construction_trades WHERE is_active=1 ORDER BY display_order,trade_name')->fetchAll();
+ $rows=db()->query("SELECT ct.id link_id,c.id company_id,t.id trade_id,t.trade_name,c.company_name,c.primary_contact,c.cell_phone,c.email
+ FROM construction_company_trades ct JOIN construction_companies c ON c.id=ct.construction_company_id JOIN construction_trades t ON t.id=ct.construction_trade_id
+ WHERE c.is_active=1 AND t.is_active=1 ORDER BY t.display_order,t.trade_name,c.company_name")->fetchAll();
+}catch(Throwable $e){$error=$error?:'Vendor trade tables are not installed. Run install_vendor_trades_v3_3_2.php first.';}
+require __DIR__.'/includes/header.php';
+?>
+
+<?php if($success):?><div class="card notice-success">Vendor information saved.</div><?php endif;?><?php if($error):?><div class="card notice-error"><?=e($error)?></div><?php endif;?>
+<div class="card"><div class="vendor-toolbar"><input id="vendorSearch" type="search" placeholder="Search trade, company, contact, phone, or email" aria-label="Search vendors"><a class="btn" href="trade_settings.php">Trade Settings</a><a class="btn btn-primary" href="#company-modal">Add Vendor</a></div><div class="table-scroll"><table id="vendorTable" class="vendor-table"><thead><tr><th>Trade</th><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>Action</th></tr></thead><tbody>
+<?php foreach($rows as $r):?><tr class="vendor-row" data-search="<?=e(strtolower(implode(' ',[$r['trade_name'],$r['company_name'],$r['primary_contact'],$r['cell_phone'],$r['email']])))?>"><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="update"><input type="hidden" name="company_id" value="<?=$r['company_id']?>"><input type="hidden" name="link_id" value="<?=$r['link_id']?>">
+<td><span class="vendor-display"><?=e($r['trade_name'])?></span><select class="vendor-edit-field" name="trade_id" hidden><?php foreach($trades as $t):?><option value="<?=$t['id']?>" <?=$t['id']==$r['trade_id']?'selected':''?>><?=e($t['trade_name'])?></option><?php endforeach;?></select></td>
+<td><strong class="vendor-display"><a href="vendor_profile.php?id=<?=$r['company_id']?>"><?=e($r['company_name'])?></a></strong><input class="vendor-edit-field" name="company_name" value="<?=e($r['company_name'])?>" required hidden></td>
+<td><span class="vendor-display"><?=e($r['primary_contact']?:'—')?></span><input class="vendor-edit-field" name="primary_contact" value="<?=e($r['primary_contact'])?>" hidden></td>
+<td><span class="vendor-display"><?php if($r['cell_phone']):?><a href="tel:<?=e(preg_replace('/\D+/','',$r['cell_phone']))?>"><?=e($r['cell_phone'])?></a><?php else:?>—<?php endif;?></span><input class="vendor-edit-field" name="cell_phone" value="<?=e($r['cell_phone'])?>" hidden></td>
+<td><span class="vendor-display"><?php if($r['email']):?><a href="mailto:<?=e($r['email'])?>"><?=e($r['email'])?></a><?php else:?>—<?php endif;?></span><input class="vendor-edit-field" type="email" name="email" value="<?=e($r['email'])?>" hidden></td>
+<td class="vendor-actions"><button type="button" class="btn vendor-edit-btn">Edit</button><button type="submit" class="btn btn-primary vendor-save-btn" hidden>Save</button><button type="button" class="btn vendor-cancel-btn" hidden>Cancel</button><button type="button" class="btn vendor-add-trade-btn" data-company-id="<?=$r['company_id']?>" data-company="<?=e($r['company_name'])?>">Add Trade</button></td></form></tr><?php endforeach;?><?php if(!$rows):?><tr><td colspan="6" class="muted">No vendor trade assignments found.</td></tr><?php endif;?></tbody></table></div></div>
+<div class="dev-modal" id="company-modal" hidden><div class="dev-modal-panel"><a class="modal-close" href="#" aria-label="Close">×</a><h2>Add Vendor</h2><form method="post" class="form-grid"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="add"><div><label>Trade</label><select name="trade_id" required><option value="">Choose trade...</option><?php foreach($trades as $t):?><option value="<?=$t['id']?>"><?=e($t['trade_name'])?></option><?php endforeach;?></select></div><div><label>Company</label><input name="company_name" required></div><div><label>Contact Name</label><input name="primary_contact"></div><div><label>Phone</label><input name="cell_phone"></div><div class="form-full"><label>Email</label><input type="email" name="email"></div><div class="form-full"><button class="primary">Add Vendor</button></div></form></div></div>
+<div class="dev-modal" id="add-trade-modal" hidden><div class="dev-modal-panel"><a class="modal-close" href="#" aria-label="Close">×</a><h2>Add Trade to Vendor</h2><p id="addTradeCompany" class="muted"></p><form method="post" class="form-grid"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="add_trade"><input type="hidden" id="addTradeCompanyId" name="company_id"><div class="form-full"><label>Trade</label><select name="trade_id" required><option value="">Choose trade...</option><?php foreach($trades as $t):?><option value="<?=$t['id']?>"><?=e($t['trade_name'])?></option><?php endforeach;?></select></div><div class="form-full"><button class="primary">Add Trade</button></div></form></div></div>
+<style>.vendor-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap}.vendor-toolbar input{flex:1;min-width:240px}.vendor-table{width:100%}.vendor-actions{white-space:nowrap}.vendor-edit-field{width:100%;min-width:0}.vendor-row.is-editing{background:#f7f9fc}.vendor-actions .btn{margin:2px;padding:8px 10px}@media(min-width:901px){.table-scroll{overflow-x:auto}.vendor-table{min-width:980px}.vendor-table th:first-child,.vendor-table td:first-child{min-width:150px}.vendor-table th:nth-child(2),.vendor-table td:nth-child(2){min-width:170px}.vendor-table th:nth-child(5),.vendor-table td:nth-child(5){min-width:200px}.vendor-actions{min-width:245px}}@media(max-width:900px){.vendor-toolbar{align-items:stretch}.vendor-toolbar input{flex:1 1 100%;min-width:0;width:100%}.vendor-toolbar .btn{flex:1;text-align:center}.table-scroll{overflow:visible!important;width:100%;max-width:100%}.vendor-table{min-width:0!important;width:100%!important}.vendor-actions{min-width:0!important;white-space:normal!important;display:grid!important;grid-template-columns:1fr!important}.vendor-actions .btn{width:100%;margin:3px 0}.vendor-row input,.vendor-row select{max-width:100%}}</style>
+<script>(function(){const table=document.getElementById('vendorTable'),search=document.getElementById('vendorSearch');if(search)search.addEventListener('input',function(){const q=this.value.trim().toLowerCase();document.querySelectorAll('.vendor-row').forEach(r=>r.style.display=!q||r.dataset.search.includes(q)?'':'none')});if(!table)return;table.addEventListener('click',function(e){const row=e.target.closest('.vendor-row');if(!row)return;if(e.target.closest('.vendor-edit-btn')){document.querySelectorAll('.vendor-row.is-editing').forEach(o=>{if(o!==row)reset(o)});row.classList.add('is-editing');row.querySelectorAll('.vendor-display,.vendor-edit-btn,.vendor-add-trade-btn').forEach(x=>x.hidden=true);row.querySelectorAll('.vendor-edit-field,.vendor-save-btn,.vendor-cancel-btn').forEach(x=>x.hidden=false)}if(e.target.closest('.vendor-cancel-btn'))reset(row);const add=e.target.closest('.vendor-add-trade-btn');if(add){document.getElementById('addTradeCompanyId').value=add.dataset.companyId;document.getElementById('addTradeCompany').textContent=add.dataset.company;const m=document.getElementById('add-trade-modal');m.hidden=false;m.classList.add('is-open')}});function reset(row){row.classList.remove('is-editing');row.querySelectorAll('.vendor-display,.vendor-edit-btn,.vendor-add-trade-btn').forEach(x=>x.hidden=false);row.querySelectorAll('.vendor-edit-field,.vendor-save-btn,.vendor-cancel-btn').forEach(x=>x.hidden=true);row.querySelectorAll('.vendor-edit-field').forEach(x=>{if(x.tagName==='SELECT'){Array.from(x.options).forEach(o=>o.selected=o.defaultSelected)}else{x.value=x.defaultValue}})}})();</script>
+<?php require __DIR__.'/includes/footer.php';?>

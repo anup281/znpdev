@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);require_once __DIR__.'/../includes/auth.php';require_admin();header('Content-Type: application/json');
+if($_SERVER['REQUEST_METHOD']!=='POST'||!csrf_check($_POST['csrf_token']??'')){http_response_code(403);echo json_encode(['ok'=>false,'message'=>'Session expired']);exit;}
+$type=($_POST['type']??'')==='inquiry'?'inquiry':'lead';$id=(int)($_POST['record_id']??0);$notes=trim((string)($_POST['notes']??''));$table=$type==='lead'?'leads':'contact_inquiries';
+try{$s=db()->prepare("SELECT notes FROM {$table} WHERE id=?");$s->execute([$id]);$old=$s->fetchColumn();if($old===false)throw new RuntimeException('Contact not found');db()->prepare("UPDATE {$table} SET notes=? WHERE id=?")->execute([$notes,$id]);if(trim((string)$old)!==$notes)contact_activity_log($type,$id,'notes_updated','Internal notes updated',null,admin_user()['id']??null);echo json_encode(['ok'=>true,'saved_at'=>date('g:i A')]);}catch(Throwable $e){http_response_code(500);echo json_encode(['ok'=>false,'message'=>'Unable to save notes']);}

@@ -1,0 +1,3 @@
+<?php
+require __DIR__.'/includes/bootstrap.php';
+$id=(int)($_GET['id']??0);$s=db()->prepare('SELECT a.*,i.construction_project_id FROM construction_schedule_attachments a JOIN construction_schedule_items i ON i.id=a.schedule_item_id WHERE a.id=?');$s->execute([$id]);$f=$s->fetch();if(!$f||!dev_can_access((int)$f['construction_project_id'])){http_response_code(404);exit('File not found.');}$path=__DIR__.'/../'.$f['file_path'];if(!is_file($path)){http_response_code(404);exit('File not found.');}header('Content-Type: '.($f['mime_type']?:'application/octet-stream'));header('Content-Length: '.filesize($path));header('Content-Disposition: inline; filename="'.str_replace('"','',(string)$f['original_filename']).'"');readfile($path);exit;

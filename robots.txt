@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /data/
+Disallow: /database/
+Disallow: /uploads/documents/
+Sitemap: https://znpdevelopment.com/sitemap.php

@@ -1,0 +1,1 @@
+(()=>{const el=document.querySelector('[data-admin-clock]');if(!el)return;const update=()=>{const now=new Date();el.textContent=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'}).format(now);};update();setInterval(update,1000);})();
