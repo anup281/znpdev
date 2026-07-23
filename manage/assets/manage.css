@@ -14,6 +14,7 @@
 }
 .management-top .management-menu-toggle{margin-left:auto;color:#fff}
 .management-top .management-menu-toggle span{background:#fff}
+.management-top .znp-portal-icons{margin-left:auto!important}
 .management-top nav.znp-workspace-nav{
   display:flex;
   align-items:center;
@@ -37,7 +38,6 @@
   background:rgba(255,255,255,.14)!important;
   color:#fff!important;
 }
-.management-top .znp-portal-icons{margin-left:auto!important}
 @media(max-width:850px){
   .management-top.znp-workspace-top{min-height:58px!important;height:58px!important;padding:0 18px!important;gap:10px!important}
   .management-top nav.znp-workspace-nav{
@@ -110,14 +110,6 @@
   background:rgba(255,255,255,.14)!important;
   color:#fff!important;
 }
-.management-top nav.znp-workspace-nav .znp-portal-icons{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-end!important;
-  flex:0 0 auto!important;
-  margin-left:auto!important;
-  padding-left:14px!important;
-}
 .management-top .management-menu-toggle{
   flex:0 0 auto!important;
   margin-left:auto!important;
@@ -150,12 +142,5 @@
     width:100%!important;
     min-height:44px!important;
     justify-content:flex-start!important;
-  }
-  .management-top nav.znp-workspace-nav .znp-portal-icons{
-    width:100%!important;
-    justify-content:flex-start!important;
-    margin:8px 0 0!important;
-    padding:10px 0 0!important;
-    border-top:1px solid rgba(255,255,255,.14)!important;
   }
 }

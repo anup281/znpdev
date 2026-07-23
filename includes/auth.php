@@ -22,20 +22,3 @@ function require_admin(): void {
     require_login();
     if(!admin_portal_role()){header('Location: '.app_url('/dev/'));exit;}
 }
-
-function investor_user(): ?array { return $_SESSION['investor_user'] ?? null; }
-function require_investor_login(): void {
-    if (!investor_user()) {
-        $_SESSION['investor_return'] = $_SERVER['REQUEST_URI'] ?? app_url('/portal/');
-        header('Location: '.app_url('/login.php?tab=investor'));
-        exit;
-    }
-}
-
-function require_investor_or_staff(): void {
-    if (!investor_user() && !admin_user()) {
-        $_SESSION['investor_return'] = $_SERVER['REQUEST_URI'] ?? app_url('/portal/');
-        header('Location: '.app_url('/login.php?tab=investor'));
-        exit;
-    }
-}

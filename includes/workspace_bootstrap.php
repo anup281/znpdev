@@ -82,7 +82,7 @@ if (!function_exists('znp_workspace_bootstrap')) {
     /**
      * Initialize a protected ZNP workspace and return normalized request data.
      *
-     * Supported workspaces: admin, construction, investor, management.
+ * Supported workspaces: admin, construction, management.
      * Options:
      * - login_url: override the authentication redirect URL.
      * - return_key: override the session key storing the requested URL.
@@ -91,7 +91,7 @@ if (!function_exists('znp_workspace_bootstrap')) {
     function znp_workspace_bootstrap(string $workspace, array $options = []): array
     {
         $workspace = strtolower(trim($workspace));
-        if (!in_array($workspace, ['admin', 'construction', 'investor', 'management'], true)) {
+        if (!in_array($workspace, ['admin', 'construction', 'management'], true)) {
             throw new InvalidArgumentException('Unknown ZNP workspace: ' . $workspace);
         }
 
@@ -104,10 +104,6 @@ if (!function_exists('znp_workspace_bootstrap')) {
                 'login_url' => '/admin/login.php',
                 'return_key' => 'dev_return',
             ],
-            'investor' => [
-                'login_url' => '/login.php?tab=investor',
-                'return_key' => 'investor_return',
-            ],
             'management' => [
                 'login_url' => '/login.php',
                 'return_key' => 'management_return',
@@ -119,8 +115,6 @@ if (!function_exists('znp_workspace_bootstrap')) {
         $loadUi = !array_key_exists('load_ui', $options) || (bool)$options['load_ui'];
 
         $staff = admin_user();
-        $investor = investor_user();
-
         if ($workspace === 'admin') {
             if (!$staff) {
                 znp_workspace_redirect_to_login($returnKey, $loginUrl);
@@ -145,11 +139,6 @@ if (!function_exists('znp_workspace_bootstrap')) {
                 exit;
             }
             $user = $staff;
-        } else {
-            if (!$investor && !$staff) {
-                znp_workspace_redirect_to_login($returnKey, $loginUrl);
-            }
-            $user = $investor ?: $staff;
         }
 
         if ($loadUi) {
@@ -162,7 +151,6 @@ if (!function_exists('znp_workspace_bootstrap')) {
             'workspace' => $workspace,
             'user' => is_array($user) ? $user : [],
             'staff_user' => is_array($staff) ? $staff : null,
-            'investor_user' => is_array($investor) ? $investor : null,
             'current_page' => basename((string)($_SERVER['PHP_SELF'] ?? 'index.php')),
             'request_uri' => (string)($_SERVER['REQUEST_URI'] ?? '/'),
             'application_version' => znp_application_version(),

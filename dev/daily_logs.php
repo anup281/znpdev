@@ -48,6 +48,7 @@ function znp_daily_remove_file(string $relativePath): void {
 $hasWeatherJson=znp_daily_column_exists('construction_daily_logs','weather_json');
 $hasPhotoTable=znp_daily_table_exists('construction_daily_log_photos');
 $hasWorkforceTable=znp_daily_table_exists('construction_daily_log_workforce');
+$hasWorkforceSourceKey=$hasWorkforceTable&&znp_daily_column_exists('construction_daily_log_workforce','source_key');
 $editId=max(0,(int)($_GET['edit_id']??$_POST['log_id']??0));
 $editLog=$editId?znp_daily_log($editId,$projectId):null;
 if($editId && !$editLog){
@@ -59,7 +60,7 @@ $workforceOptions=[];
 try{
     $uq=db()->prepare("SELECT CONCAT('user_',au.id) option_key,'user' source_type,au.id source_id,au.full_name label,COALESCE(cpu.project_role,'Project Team') role_label FROM construction_project_users cpu JOIN admin_users au ON au.id=cpu.admin_user_id WHERE cpu.construction_project_id=? AND cpu.is_active=1 AND au.is_active=1 ORDER BY au.full_name");
     $uq->execute([$projectId]);
-    foreach($uq->fetchAll() as $row) $workforceOptions[$row['option_key']]=$row;
+    foreach($uq->fetchAll() as $row){$row['source_key']=$row['option_key'];$workforceOptions[$row['option_key']]=$row;}
     $cq=db()->prepare("SELECT pc.id source_id,c.company_name,pc.trade_role,(SELECT GROUP_CONCAT(t.trade_name SEPARATOR '\n') FROM construction_company_trades ct JOIN construction_trades t ON t.id=ct.construction_trade_id AND t.is_active=1 WHERE ct.construction_company_id=c.id AND ct.archived_at IS NULL) active_trade_names FROM construction_project_companies pc JOIN construction_companies c ON c.id=pc.construction_company_id WHERE pc.construction_project_id=? AND c.is_active=1 AND NULLIF(TRIM(pc.trade_role),'') IS NOT NULL ORDER BY pc.trade_role,c.company_name,pc.id");
     $cq->execute([$projectId]);
     $companyTradeOptions=[];
@@ -69,7 +70,7 @@ try{
         foreach(array_values(array_unique(array_map('trim',$trades))) as $trade){
             if($trade===''||!in_array(strtolower($trade),$activeTradeNames,true))continue;
             $key='company_'.$row['source_id'].'_trade_'.substr(sha1(strtolower($trade)),0,12);
-            $companyTradeOptions[$key]=['option_key'=>$key,'source_type'=>'company','source_id'=>(int)$row['source_id'],'company_name'=>$row['company_name'],'trade_name'=>$trade,'label'=>$row['company_name'].' — '.$trade,'legacy_label'=>$trade.' — '.$row['company_name'],'role_label'=>'Company + Trade'];
+            $companyTradeOptions[$key]=['option_key'=>$key,'source_key'=>$key,'source_type'=>'company','source_id'=>(int)$row['source_id'],'company_name'=>$row['company_name'],'trade_name'=>$trade,'label'=>$row['company_name'].' — '.$trade,'legacy_label'=>$trade.' — '.$row['company_name'],'role_label'=>'Company + Trade'];
         }
     }
     uasort($companyTradeOptions,static fn($a,$b)=>strcasecmp((string)$a['trade_name'],(string)$b['trade_name'])?:strcasecmp((string)$a['company_name'],(string)$b['company_name']));
@@ -85,6 +86,7 @@ if($editId && $hasWorkforceTable){
         foreach($wq->fetchAll() as $row){
             $matched=false;
             foreach($workforceOptions as $key=>$option){
+                if($hasWorkforceSourceKey&&trim((string)($row['source_key']??''))!==''&&hash_equals((string)$option['source_key'],(string)$row['source_key'])){$editWorkforce[$key]=(int)$row['worker_count'];$matched=true;break;}
                 if(($option['source_type']??'')!==($row['source_type']??'')||(int)($option['source_id']??0)!==(int)($row['source_id']??0))continue;
                 $savedLabel=trim((string)($row['display_label']??''));
                 if($savedLabel===''||strcasecmp($savedLabel,(string)$option['label'])===0||strcasecmp($savedLabel,(string)($option['legacy_label']??''))===0){$editWorkforce[$key]=(int)$row['worker_count'];$matched=true;break;}
@@ -130,10 +132,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $key=(string)$key;
             if(!isset($workforceOptions[$key])) continue;
             $row=$workforceOptions[$key];
-            $workforceSelections[]=['source_type'=>$row['source_type'],'source_id'=>(int)$row['source_id'],'label'=>$row['label'],'worker_count'=>1];
+            $workforceSelections[]=['source_key'=>(string)$row['source_key'],'source_type'=>$row['source_type'],'source_id'=>(int)$row['source_id'],'label'=>$row['label'],'worker_count'=>1];
             $workforce++;
         }
         if(!$hasWorkforceTable && !empty($workforceSelections)) throw new RuntimeException('The Daily Log workforce upgrade must be installed before saving team selections.');
+        if($hasWorkforceTable&&!$hasWorkforceSourceKey&&$workforceSelections){$legacyKeys=array_map(static fn($row):string=>$row['source_type'].':'.$row['source_id'],$workforceSelections);if(count($legacyKeys)!==count(array_unique($legacyKeys)))throw new RuntimeException('The Company + Trade Daily Log upgrade must be installed before selecting multiple trades for one vendor.');}
         $activities=trim((string)($_POST['work_performed']??''));
         $delays=trim((string)($_POST['delays']??''));
         $safety=trim((string)($_POST['safety_incidents']??''));
@@ -190,8 +193,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $wd=db()->prepare('DELETE FROM construction_daily_log_workforce WHERE daily_log_id=?');
             $wd->execute([$id]);
             if($workforceSelections){
-                $wi=db()->prepare('INSERT INTO construction_daily_log_workforce(daily_log_id,construction_project_id,source_type,source_id,display_label,worker_count,created_at) VALUES(?,?,?,?,?,?,NOW())');
-                foreach($workforceSelections as $wf) $wi->execute([$id,$projectId,$wf['source_type'],$wf['source_id'],$wf['label'],$wf['worker_count']]);
+                if($hasWorkforceSourceKey){$wi=db()->prepare('INSERT INTO construction_daily_log_workforce(daily_log_id,construction_project_id,source_type,source_id,source_key,display_label,worker_count,created_at) VALUES(?,?,?,?,?,?,?,NOW())');foreach($workforceSelections as $wf)$wi->execute([$id,$projectId,$wf['source_type'],$wf['source_id'],$wf['source_key'],$wf['label'],$wf['worker_count']]);}
+                else{$wi=db()->prepare('INSERT INTO construction_daily_log_workforce(daily_log_id,construction_project_id,source_type,source_id,display_label,worker_count,created_at) VALUES(?,?,?,?,?,?,NOW())');foreach($workforceSelections as $wf)$wi->execute([$id,$projectId,$wf['source_type'],$wf['source_id'],$wf['label'],$wf['worker_count']]);}
             }
         }
 
@@ -269,7 +272,7 @@ $isEditing=(bool)$editLog;
 <div class="form-full" style="display:flex;justify-content:flex-end;gap:8px;align-items:center"><button type="button" class="daily-log-reset" id="daily-log-reset">Reset Draft</button><?php if($isEditing):?><a class="secondary" href="daily_logs.php?project_id=<?=$projectId?>">Cancel Edit</a><?php endif;?></div>
 <div><label>Log Date</label><input type="date" name="log_date" required value="<?=e($formSource['log_date']??date('Y-m-d'))?>"></div>
 <div class="form-full"><label>Project Team / Trades on Job</label>
-<?php if(!$hasWorkforceTable):?><div class="notice-warning">Install the included Daily Log workforce upgrade before using this field.</div><?php endif;?>
+<?php if(!$hasWorkforceTable):?><div class="notice-warning">Install the Daily Log workforce upgrade before using this field.</div><?php elseif(!$hasWorkforceSourceKey):?><div class="notice-warning">A Super Admin must run the Company + Trade Daily Log upgrade before multiple trades from one vendor can be saved.</div><?php endif;?>
 <details class="workforce-panel" id="workforce-panel" open>
 <summary><span>Select Team / Trades</span><span class="workforce-summary"><span id="workforce-selected-count"><?=e((string)count($editWorkforce))?></span> selected</span></summary>
 <div class="workforce-panel-body">

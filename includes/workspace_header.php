@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/workspace_navigation.php';
+require_once __DIR__.'/workspace_navigation.php';
 
 if (!function_exists('znp_workspace_document_start')) {
     /**
@@ -35,11 +35,10 @@ if (!function_exists('znp_workspace_header_styles')) {
     function znp_workspace_header_styles(): void { ?>
 <style>
 /* Shared workspace header v4.3.4
-   Construction is the visual master for Admin, Construction and Investors. */
+   Construction is the visual master for Admin, Construction, and Management. */
 .znp-workspace-top,
 .admin-top.znp-workspace-top,
-.dev-top.znp-workspace-top,
-.znp-investor-top.znp-workspace-top{
+.dev-top.znp-workspace-top{
     display:flex!important;
     align-items:center!important;
     flex-direction:row!important;
@@ -56,8 +55,7 @@ if (!function_exists('znp_workspace_header_styles')) {
 }
 .znp-workspace-brand,
 .admin-brand.znp-workspace-brand,
-.dev-brand.znp-workspace-brand,
-.znp-investor-brand.znp-workspace-brand{
+.dev-brand.znp-workspace-brand{
     display:inline-flex!important;
     align-items:center!important;
     justify-content:flex-start!important;
@@ -86,9 +84,7 @@ if (!function_exists('znp_workspace_header_styles')) {
 .admin-brand.znp-workspace-brand span,
 .admin-brand.znp-workspace-brand strong,
 .dev-brand.znp-workspace-brand span,
-.dev-brand.znp-workspace-brand strong,
-.znp-investor-brand.znp-workspace-brand span,
-.znp-investor-brand.znp-workspace-brand strong{
+.dev-brand.znp-workspace-brand strong{
     display:inline!important;
     width:auto!important;
     height:auto!important;
@@ -110,8 +106,7 @@ if (!function_exists('znp_workspace_header_styles')) {
 /* Existing workspace navigation keeps Construction's compact treatment. */
 .admin-top .admin-top-link,
 .admin-top .admin-hover-group>button{font:inherit!important;font-size:13px!important;font-weight:750!important;line-height:1!important;}
-.znp-workspace-nav>a:not(.znp-portal-icon),
-.znp-investor-nav>a:not(.znp-portal-icon){
+.znp-workspace-nav>a{
     display:inline-flex!important;
     align-items:center!important;
     justify-content:center!important;
@@ -127,29 +122,14 @@ if (!function_exists('znp_workspace_header_styles')) {
     font-weight:700!important;
     letter-spacing:0!important;
 }
-.znp-workspace-nav>a:not(.znp-portal-icon):hover,
-.znp-workspace-nav>a.active:not(.znp-portal-icon),
-.znp-investor-nav>a:not(.znp-portal-icon):hover,
-.znp-investor-nav>a.active:not(.znp-portal-icon){background:rgba(255,255,255,.14)!important;color:#fff!important}
-
-.znp-portal-icons{display:flex!important;align-items:center!important;gap:7px!important;margin-left:auto!important;flex:0 0 auto!important}
-.znp-portal-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important;border:1px solid rgba(22,58,112,.18)!important;border-radius:9px!important;background:#fff!important;color:#7b8794!important;text-decoration:none!important;box-shadow:0 1px 2px rgba(15,35,55,.05)!important;transition:background .15s,color .15s,border-color .15s,transform .15s!important}
-.znp-portal-icon:hover{background:#eef5fb!important;color:#163a70!important;border-color:#8fb3d1!important;transform:translateY(-1px)}
-.znp-portal-icon.is-active{background:#163a70!important;color:#fff!important;border-color:#163a70!important}
-.znp-portal-icon i{font-size:15px!important;line-height:1!important}
-.znp-portal-icon[data-label]{position:relative}
-.znp-portal-icon[data-label]:after{content:attr(data-label);position:absolute;right:0;top:44px;background:#102f52;color:#fff;padding:5px 7px;border-radius:5px;font-size:11px;line-height:1;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-3px);transition:.15s;z-index:1000}
-.znp-portal-icon[data-label]:hover:after{opacity:1;transform:none}
-.znp-logout-icon:hover{background:#fff1f1!important;color:#a12626!important;border-color:#d9a0a0!important}
-
-/* Investor currently has no page navigation; icons remain aligned to the right. */
-.znp-investor-actions{display:flex!important;align-items:center!important;margin-left:auto!important}
+.znp-workspace-nav>a:hover,
+.znp-workspace-nav>a.active{background:rgba(255,255,255,.14)!important;color:#fff!important}
+.znp-portal-icons{display:flex!important;align-items:center!important;gap:7px!important;margin-left:auto!important;flex:0 0 auto!important}.znp-portal-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important;border:1px solid rgba(22,58,112,.18)!important;border-radius:9px!important;background:#fff!important;color:#667789!important;text-decoration:none!important;box-shadow:0 1px 2px rgba(15,35,55,.05)!important;transition:background .15s,color .15s,border-color .15s,transform .15s!important}.znp-portal-icon:hover{background:#eef5fb!important;color:#163a70!important;border-color:#8fb3d1!important;transform:translateY(-1px)}.znp-portal-icon.is-active{background:#163a70!important;color:#fff!important;border-color:#fff!important}.znp-portal-icon i{font-size:15px!important;line-height:1!important}.znp-portal-icon[data-label]{position:relative}.znp-portal-icon[data-label]:after{content:attr(data-label);position:absolute;right:0;top:44px;background:#102f52;color:#fff;padding:5px 7px;border-radius:5px;font-size:11px;line-height:1;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-3px);transition:.15s;z-index:1000}.znp-portal-icon[data-label]:hover:after{opacity:1;transform:none}.znp-logout-icon:hover{background:#fff1f1!important;color:#a12626!important;border-color:#d9a0a0!important}
 
 @media(max-width:900px){
     .znp-workspace-top,
     .admin-top.znp-workspace-top,
-    .dev-top.znp-workspace-top,
-    .znp-investor-top.znp-workspace-top{
+    .dev-top.znp-workspace-top{
         min-height:54px!important;
         height:54px!important;
         padding:0 3%!important;
@@ -158,17 +138,14 @@ if (!function_exists('znp_workspace_header_styles')) {
     }
     .znp-workspace-brand,
     .admin-brand.znp-workspace-brand,
-    .dev-brand.znp-workspace-brand,
-    .znp-investor-brand.znp-workspace-brand{
+    .dev-brand.znp-workspace-brand{
         min-height:34px!important;
         height:34px!important;
         padding:0 11px!important;
         font-size:14px!important;
     }
     .znp-workspace-brand span,.znp-workspace-brand strong{font-size:14px!important}
-    .znp-portal-icons{margin-left:auto!important;padding:0!important;gap:5px!important}
-    .znp-portal-icon{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}
-    .znp-portal-icon[data-label]:after{display:none!important}
+    .znp-portal-icons{margin-left:auto!important;padding:0!important;gap:5px!important}.znp-portal-icon{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}.znp-portal-icon[data-label]:after{display:none!important}
 }
 @media(max-width:420px){
     .znp-workspace-brand strong{display:inline!important}

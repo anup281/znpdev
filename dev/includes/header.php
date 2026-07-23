@@ -35,7 +35,7 @@ $projectUrl=static function(string $page) use ($mobileProjectId): string {
       <?php if($headerProjects):?><div class="dev-project-menu" aria-label="Available construction projects"><?php foreach($headerProjects as $hp):?><a class="<?=$projectId===(int)$hp['id']?'active':''?>" href="project.php?project_id=<?=(int)$hp['id']?>"><?=e($hp['project_name'])?></a><?php endforeach;?></div><?php endif;?>
     </div>
     <?php if(dev_is_super()):?><a class="<?=$current==='users.php'?'active':''?>" href="users.php">Users</a><a class="<?=in_array($current,['companies.php','vendor_profile.php','trade_settings.php'],true)?'active':''?>" href="companies.php">Vendors</a><a class="<?=$current==='schedule_templates.php'?'active':''?>" href="schedule_templates.php">Templates</a><?php endif;?>
-<?php znp_render_workspace_icons('construction'); ?>
+    <?php znp_render_workspace_icons('construction'); ?>
   </nav>
 </header>
 <main class="dev-main">
