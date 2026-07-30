@@ -27,7 +27,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         }catch(Throwable $e){$error='The portal could not complete the login request. Please contact the site administrator.';}
         $locked=$u&&!empty($u['locked_until'])&&strtotime((string)$u['locked_until'])>=time();
         $ok=$u&&!$locked&&password_verify($pass,(string)$u['password_hash']);
-        try{db()->prepare('INSERT INTO admin_login_log(admin_user_id,email_attempted,was_successful,ip_address,user_agent) VALUES(?,?,?,?,?)')->execute([$u['id']??null,$identity,$ok?1:0,$_SERVER['REMOTE_ADDR']??null,$_SERVER['HTTP_USER_AGENT']??null]);}catch(Throwable $ignored){}
+        try{db()->prepare('INSERT INTO admin_login_log(admin_user_id,email_attempted,was_successful,ip_address,user_agent) VALUES(?,?,?,?,?)')->execute([$u['id']??null,$identity,$ok?1:0,$_SERVER['REMOTE_ADDR']??null,$_SERVER['HTTP_USER_AGENT']??null]);}catch(Throwable $exception){error_log('Admin login audit write failed: '.$exception->getMessage());}
         if($ok){
             session_regenerate_id(true);
             $_SESSION['admin_user']=['id'=>(int)$u['id'],'name'=>$u['full_name'],'role'=>$u['role'],'email'=>$u['email'],'username'=>$u['username']??$u['email'],'construction_only'=>(int)($u['construction_only']??0),'construction_role'=>$u['construction_role']??'','must_change_password'=>(int)($u['must_change_password']??0)];

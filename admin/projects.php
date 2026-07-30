@@ -20,17 +20,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     }
 
     try {
-        $projectStatement = db()->prepare('SELECT project_name FROM projects WHERE id = ? LIMIT 1');
+        $projectStatement = db()->prepare('SELECT project_name,primary_image FROM projects WHERE id = ? LIMIT 1');
         $projectStatement->execute([$id]);
-        $projectName = $projectStatement->fetchColumn();
+        $project = $projectStatement->fetch();
 
-        if ($projectName === false) {
+        if (!$project) {
             header('Location: projects.php?delete_error=missing');
             exit;
         }
 
         $deleteStatement = db()->prepare('DELETE FROM projects WHERE id = ?');
         $deleteStatement->execute([$id]);
+        if (!empty($project['primary_image']) && !app_delete_managed_file((string)$project['primary_image'], ['assets/images/projects'])) {
+            error_log('Deleted project image could not be removed: '.$project['primary_image']);
+        }
 
         header('Location: projects.php?deleted=1');
         exit;

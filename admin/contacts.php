@@ -109,7 +109,7 @@ function contact_extended_fields_row(string $recordType, int $recordId): array
 function save_contact_extended_fields(string $recordType, int $recordId, array $fields): void
 {
     if (!contact_extended_fields_ready()) {
-        throw new RuntimeException('Install the Contact Fields database upgrade before saving these fields.');
+        throw new RuntimeException('Contact fields are unavailable because the required database structure is missing. Contact the system administrator.');
     }
     $stmt = db()->prepare('INSERT INTO contact_extended_fields(record_type,record_id,company_name,inquiry_type,prospective_investor_type,investment_amount,message) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE company_name=VALUES(company_name),inquiry_type=VALUES(inquiry_type),prospective_investor_type=VALUES(prospective_investor_type),investment_amount=VALUES(investment_amount),message=VALUES(message)');
     $stmt->execute([
@@ -373,7 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } elseif (in_array($action, ['add_project_interest','update_project_interest','remove_project_interest','send_interest_nda'], true)) {
             if (!contact_project_interests_ready()) {
-                $error = 'Install the Multi-Project CRM database upgrade before managing project interests.';
+                $error = 'Project interests are unavailable because the required database structure is missing. Contact the system administrator.';
             } elseif ($action === 'remove_project_interest') {
                 $interestId=(int)($_POST['interest_id']??0);
                 $stmt=db()->prepare('SELECT cpi.*,o.project_name FROM contact_project_interests cpi JOIN investment_opportunities o ON o.id=cpi.investment_opportunity_id WHERE cpi.id=? AND cpi.record_type=? AND cpi.record_id=?');

@@ -93,7 +93,7 @@ if($editId && $hasWorkforceTable){
             }
             if(!$matched)$editWorkforce[$row['source_type'].'_'.$row['source_id']]=(int)$row['worker_count'];
         }
-    }catch(Throwable $ignored){}
+    }catch(Throwable $exception){error_log('Daily Log workforce edit data could not be loaded: '.$exception->getMessage());}
 }
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
@@ -119,7 +119,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $d->execute([$deleteId,$projectId]);
             db()->commit();
             foreach($paths as $path) znp_daily_remove_file((string)$path);
-            try{ dev_activity($projectId,'daily_log_deleted','Daily log deleted for '.dev_date((string)$deleteLog['log_date']).'.','daily_log',$deleteId); }catch(Throwable $ignored){}
+            try{ dev_activity($projectId,'daily_log_deleted','Daily log deleted for '.dev_date((string)$deleteLog['log_date']).'.','daily_log',$deleteId); }catch(Throwable $exception){error_log('Daily Log deletion activity write failed: '.$exception->getMessage());}
             header('Location: daily_logs.php?project_id='.$projectId.'&deleted=1');
             exit;
         }
@@ -135,8 +135,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $workforceSelections[]=['source_key'=>(string)$row['source_key'],'source_type'=>$row['source_type'],'source_id'=>(int)$row['source_id'],'label'=>$row['label'],'worker_count'=>1];
             $workforce++;
         }
-        if(!$hasWorkforceTable && !empty($workforceSelections)) throw new RuntimeException('The Daily Log workforce upgrade must be installed before saving team selections.');
-        if($hasWorkforceTable&&!$hasWorkforceSourceKey&&$workforceSelections){$legacyKeys=array_map(static fn($row):string=>$row['source_type'].':'.$row['source_id'],$workforceSelections);if(count($legacyKeys)!==count(array_unique($legacyKeys)))throw new RuntimeException('The Company + Trade Daily Log upgrade must be installed before selecting multiple trades for one vendor.');}
+        if(!$hasWorkforceTable && !empty($workforceSelections)) throw new RuntimeException('Daily Log workforce is unavailable because the required database table is missing.');
+        if($hasWorkforceTable&&!$hasWorkforceSourceKey&&$workforceSelections){$legacyKeys=array_map(static fn($row):string=>$row['source_type'].':'.$row['source_id'],$workforceSelections);if(count($legacyKeys)!==count(array_unique($legacyKeys)))throw new RuntimeException('The database does not support selecting multiple trades from one vendor. Contact the system administrator.');}
         $activities=trim((string)($_POST['work_performed']??''));
         $delays=trim((string)($_POST['delays']??''));
         $safety=trim((string)($_POST['safety_incidents']??''));
@@ -200,7 +200,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
         $hasFiles=!empty($_FILES['photos']['name']) && (is_array($_FILES['photos']['name'])?array_filter($_FILES['photos']['name']):true);
         if($hasFiles && !$hasPhotoTable){
-            $warning='The daily log was saved, but photos were skipped because the Daily Log photo upgrade has not been installed.';
+            $warning='The daily log was saved, but photos were skipped because photo storage is unavailable.';
         }elseif($hasPhotoTable && $hasFiles){
             $uploads=dev_compress_images($_FILES['photos']??[],'daily-logs');
             if(!$uploads) throw new RuntimeException('The selected photos could not be processed. Please use JPG, PNG, WebP, HEIC, or HEIF files.');
@@ -212,7 +212,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         }
         db()->commit();
         foreach($removedPhotoPaths as $removedPhotoPath) znp_daily_remove_file($removedPhotoPath);
-        try{ dev_activity($projectId,$event,$message,'daily_log',$id); }catch(Throwable $ignored){}
+        try{ dev_activity($projectId,$event,$message,'daily_log',$id); }catch(Throwable $exception){error_log('Daily Log activity write failed: '.$exception->getMessage());}
         header('Location: daily_logs.php?project_id='.$projectId.'&'.$redirectFlag.($warning?'&photo_upgrade=1':''));
         exit;
     }catch(Throwable $e){
@@ -250,7 +250,7 @@ if($logs && $hasWorkforceTable){
         $wq=db()->prepare("SELECT * FROM construction_daily_log_workforce WHERE daily_log_id IN ($ph) ORDER BY display_label");
         $wq->execute($ids);
         foreach($wq->fetchAll() as $row) $workforceByLog[(int)$row['daily_log_id']][]=$row;
-    }catch(Throwable $ignored){}
+    }catch(Throwable $exception){error_log('Daily Log workforce display data could not be loaded: '.$exception->getMessage());}
 }
 if(isset($_GET['photo_upgrade'])) $warning='The daily log was saved, but photo attachments are not enabled.';
 require __DIR__.'/includes/header.php';
@@ -266,13 +266,12 @@ $isEditing=(bool)$editLog;
 <?php if(isset($_GET['deleted'])):?><div class="card notice-success">Daily log deleted successfully.</div><?php endif;?>
 <?php if($error):?><div class="card notice-error"><?=e($error)?></div><?php endif;?>
 <?php if($warning):?><div class="card notice-warning"><?=e($warning)?></div><?php endif;?>
-<?php if($hasPhotoTable && dev_is_super()):?><div class="daily-log-recovery-link"><a class="btn btn-secondary btn-small" href="photo_recovery.php?project_id=<?=$projectId?>">Photo Recovery</a></div><?php endif;?>
 <details class="card daily-log-compose" <?=$isEditing?'open':''?>><summary><span class="daily-log-summary"><strong><?=$isEditing?'Edit Daily Log':'Add Daily Log'?></strong><small><?=$isEditing?'Update this entry and its attachments.':'Create a new project field report.'?></small></span></summary><form id="daily-log-form" method="post" enctype="multipart/form-data" class="form-grid" data-heic-upload-form>
 <input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="<?=$isEditing?'update':'create'?>"><?php if($isEditing):?><input type="hidden" name="log_id" value="<?=$editId?>"><?php endif;?>
 <div class="form-full" style="display:flex;justify-content:flex-end;gap:8px;align-items:center"><button type="button" class="daily-log-reset" id="daily-log-reset">Reset Draft</button><?php if($isEditing):?><a class="secondary" href="daily_logs.php?project_id=<?=$projectId?>">Cancel Edit</a><?php endif;?></div>
 <div><label>Log Date</label><input type="date" name="log_date" required value="<?=e($formSource['log_date']??date('Y-m-d'))?>"></div>
 <div class="form-full"><label>Project Team / Trades on Job</label>
-<?php if(!$hasWorkforceTable):?><div class="notice-warning">Install the Daily Log workforce upgrade before using this field.</div><?php elseif(!$hasWorkforceSourceKey):?><div class="notice-warning">A Super Admin must run the Company + Trade Daily Log upgrade before multiple trades from one vendor can be saved.</div><?php endif;?>
+<?php if(!$hasWorkforceTable):?><div class="notice-warning">Daily Log workforce is unavailable because the required database table is missing. Contact the system administrator.</div><?php elseif(!$hasWorkforceSourceKey):?><div class="notice-warning">The database does not support multiple trades from one vendor. Contact the system administrator.</div><?php endif;?>
 <details class="workforce-panel" id="workforce-panel" open>
 <summary><span>Select Team / Trades</span><span class="workforce-summary"><span id="workforce-selected-count"><?=e((string)count($editWorkforce))?></span> selected</span></summary>
 <div class="workforce-panel-body">

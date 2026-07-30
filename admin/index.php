@@ -8,15 +8,15 @@ try{
   $leadSql="SELECT 'Lead' record_type,l.id,l.full_name,l.email,l.phone,l.status,l.submitted_at,cef.investment_amount,NULL investment_opportunity_id FROM leads l LEFT JOIN contact_extended_fields cef ON cef.record_type='lead' AND cef.record_id=l.id WHERE l.status='new'";
   foreach(db()->query($leadSql)->fetchAll() as $r)$all[]=$r;
 }catch(Throwable $e){
-  try{foreach(db()->query("SELECT 'Lead' record_type,id,full_name,email,phone,status,submitted_at,NULL investment_amount,NULL investment_opportunity_id FROM leads WHERE status='new'")->fetchAll() as $r)$all[]=$r;}catch(Throwable $ignored){}
+  try{foreach(db()->query("SELECT 'Lead' record_type,id,full_name,email,phone,status,submitted_at,NULL investment_amount,NULL investment_opportunity_id FROM leads WHERE status='new'")->fetchAll() as $r)$all[]=$r;}catch(Throwable $fallbackError){error_log('Admin dashboard legacy lead query failed: '.$fallbackError->getMessage());}
 }
 usort($all,fn($a,$b)=>strcmp((string)$b['submitted_at'],(string)$a['submitted_at']));$total=count($all);$recent=$all;
 $projectNames=[];
 try{
   $rows=db()->query("SELECT cpi.record_type,cpi.record_id,o.project_name FROM contact_project_interests cpi JOIN investment_opportunities o ON o.id=cpi.investment_opportunity_id ORDER BY o.display_order,o.project_name")->fetchAll();
   foreach($rows as $pr)$projectNames[$pr['record_type'].':'.$pr['record_id']][]=$pr['project_name'];
-}catch(Throwable $e){}
-$oppNames=[];try{foreach(db()->query('SELECT id,project_name FROM investment_opportunities')->fetchAll() as $o)$oppNames[(int)$o['id']]=$o['project_name'];}catch(Throwable $e){}
+}catch(Throwable $e){error_log('Admin dashboard project-interest lookup failed: '.$e->getMessage());}
+$oppNames=[];try{foreach(db()->query('SELECT id,project_name FROM investment_opportunities')->fetchAll() as $o)$oppNames[(int)$o['id']]=$o['project_name'];}catch(Throwable $e){error_log('Admin dashboard investment lookup failed: '.$e->getMessage());}
 ?>
 <div class="admin-page-head admin-greeting-head"><div><h1><?=e($greeting.', '.$userName)?></h1><p class="admin-dashboard-meta"><span data-admin-clock><?=e(date('g:i A'))?></span></p></div></div>
 <section class="admin-dashboard-section"><div class="admin-section-heading"><div><h2>Inquiries in New Status</h2></div><div class="admin-inline-links"><a href="contacts.php">View All Contacts</a></div></div>

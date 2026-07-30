@@ -28,11 +28,6 @@ function setting(string $key,string $default=''): string {
 function money_compact(float $v): string {
  return '$'.rtrim(rtrim(number_format($v/1000000,1), '0'),'.').'M+';
 }
-function audit(?int $adminId,string $entity,int $id,string $action,array $old=[],array $new=[]): void {
- $s=db()->prepare('INSERT INTO audit_log(admin_user_id,entity_type,entity_id,action,old_values,new_values,ip_address) VALUES(?,?,?,?,?,?,?)');
- $s->execute([$adminId,$entity,$id,$action,json_encode($old),json_encode($new),$_SERVER['REMOTE_ADDR']??null]);
-}
-
 function format_phone(?string $phone): string {
  $digits=preg_replace('/\D+/','',(string)$phone);
  if(strlen($digits)===11 && $digits[0]==='1') $digits=substr($digits,1);
@@ -52,26 +47,18 @@ function email_link(?string $email,string $empty='—'): string {
  $email=trim((string)$email); if($email==='') return e($empty);
  return '<a href="mailto:'.e($email).'">'.e($email).'</a>';
 }
-
-
-function app_send_mail_legacy(string $to,string $subject,string $html,array $attachments=[]): bool {
- $boundary='znp_'.bin2hex(random_bytes(12));
- $from=setting('mail_from_email','noreply@znpdev.com');
- $fromName=setting('mail_from_name','ZNP Development');
- $headers=[
-  'MIME-Version: 1.0',
-  'From: '.$fromName.' <'.$from.'>',
-  'Reply-To: '.$from,
-  'Content-Type: multipart/mixed; boundary="'.$boundary.'"'
- ];
- $body="--$boundary\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n$html\r\n";
- foreach($attachments as $a){
-  $data=$a['data']??'';$name=$a['name']??'attachment.pdf';$type=$a['type']??'application/octet-stream';
-  $body.="--$boundary\r\nContent-Type: $type; name=\"$name\"\r\nContent-Disposition: attachment; filename=\"$name\"\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode($data))."\r\n";
- }
- $body.="--$boundary--\r\n";
- return mail($to,$subject,$body,implode("\r\n",$headers));
+function app_delete_managed_file(?string $relativePath,array $allowedPrefixes): bool {
+ $relativePath=ltrim(str_replace('\\','/',trim((string)$relativePath)),'/');
+ if($relativePath===''||str_contains($relativePath,'..'))return false;
+ $allowed=false;
+ foreach($allowedPrefixes as $prefix){$prefix=trim(str_replace('\\','/',$prefix),'/').'/';if(str_starts_with($relativePath,$prefix)){$allowed=true;break;}}
+ if(!$allowed)return false;
+ $root=realpath(__DIR__.'/..');$absolute=realpath(__DIR__.'/../'.$relativePath);
+ if($root===false||$absolute===false||!str_starts_with($absolute,$root.DIRECTORY_SEPARATOR)||!is_file($absolute))return false;
+ return unlink($absolute);
 }
+
+
 function simple_pdf_escape(string $s): string { return str_replace(['\\','(',')'],['\\\\','\\(','\\)'],$s); }
 function generic_nda_pdf(string $recipient): string {
  $date=date('F j, Y');
@@ -123,28 +110,6 @@ function generic_nda_pdf(string $recipient): string {
  $pdf.="trailer << /Size 6 /Root 1 0 R >>\nstartxref\n$xref\n%%EOF";
  return $pdf;
 }
-function znp_http_json(string $url,int $timeout=3): ?array {
- $context=stream_context_create(['http'=>['timeout'=>$timeout,'user_agent'=>'ZNP-Admin/1.4'],'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]);
- $raw=@file_get_contents($url,false,$context);if($raw===false)return null;$data=json_decode($raw,true);return is_array($data)?$data:null;
-}
-function admin_weather(): ?array {
- $cache=__DIR__.'/../data/admin-weather-cache.json';
- if(is_file($cache) && time()-filemtime($cache)<900){$d=json_decode((string)file_get_contents($cache),true);if(is_array($d))return $d;}
- $city='Dallas';$region='TX';$lat=32.7767;$lon=-96.7970;
- $ip=$_SERVER['REMOTE_ADDR']??'';
- if($ip && !in_array($ip,['127.0.0.1','::1'],true)){
-  $geo=znp_http_json('https://ipapi.co/'.rawurlencode($ip).'/json/');
-  if(is_array($geo) && !empty($geo['latitude']) && !empty($geo['longitude'])){$lat=(float)$geo['latitude'];$lon=(float)$geo['longitude'];$city=(string)($geo['city']?:$city);$region=(string)($geo['region_code']?:$region);}
- }
- $url='https://api.open-meteo.com/v1/forecast?latitude='.$lat.'&longitude='.$lon.'&current=temperature_2m,weather_code&temperature_unit=fahrenheit';
- $wx=znp_http_json($url);
- if(!is_array($wx)||!isset($wx['current']['temperature_2m']))return null;
- $code=(int)($wx['current']['weather_code']??0);$condition='Clear';$icon='☀️';
- if($code>=1&&$code<=3){$condition='Partly Cloudy';$icon='🌤️';}elseif($code>=45&&$code<=48){$condition='Fog';$icon='🌫️';}elseif($code>=51&&$code<=67){$condition='Rain';$icon='🌧️';}elseif($code>=71&&$code<=77){$condition='Snow';$icon='❄️';}elseif($code>=80&&$code<=82){$condition='Showers';$icon='🌦️';}elseif($code>=95){$condition='Thunderstorms';$icon='⛈️';}
- $data=['city'=>$city,'region'=>$region,'temp'=>(int)round((float)$wx['current']['temperature_2m']),'condition'=>$condition,'icon'=>$icon];
- @file_put_contents($cache,json_encode($data),LOCK_EX);return $data;
-}
-
 function setting_save(string $key,string $value,string $type='string'): void {
  $s=db()->prepare('INSERT INTO site_settings(setting_key,setting_value,setting_type,is_public) VALUES(?,?,?,0) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),setting_type=VALUES(setting_type)');
  $s->execute([$key,$value,$type]);
@@ -205,14 +170,14 @@ function app_send_mail_detailed(string $to,string $subject,string $html,array $a
   foreach($attachments as $a){$data=(string)($a['data']??'');$name=preg_replace('/[^A-Za-z0-9._-]/','_',($a['name']??'attachment.pdf'));$type=$a['type']??'application/octet-stream';$body.="--$boundary\r\nContent-Type: $type; name=\"$name\"\r\nContent-Disposition: attachment; filename=\"$name\"\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode($data))."\r\n";}
   $body.="--$boundary--\r\n";$message=implode("\r\n",$headers)."\r\n\r\n".$body;
   $message=preg_replace('/(?m)^\./','..',$message);fwrite($socket,$message."\r\n.\r\n");smtp_expect($socket,[250],'Send');@smtp_command($socket,'QUIT',[221],'Quit');fclose($socket);
-  try{db()->prepare('INSERT INTO mail_delivery_log(recipient,subject,status,error_message) VALUES(?,?,?,NULL)')->execute([$to,$subject,'accepted']);}catch(Throwable $ignore){}
+  try{db()->prepare('INSERT INTO mail_delivery_log(recipient,subject,status,error_message) VALUES(?,?,?,NULL)')->execute([$to,$subject,'accepted']);}catch(Throwable $logError){error_log('Mail delivery success log failed: '.$logError->getMessage());}
   return ['ok'=>true,'error'=>''];
- }catch(Throwable $e){@fwrite($socket,"QUIT\r\n");@fclose($socket);try{db()->prepare('INSERT INTO mail_delivery_log(recipient,subject,status,error_message) VALUES(?,?,?,?)')->execute([$to,$subject,'failed',substr($e->getMessage(),0,1000)]);}catch(Throwable $ignore){}return ['ok'=>false,'error'=>$e->getMessage()];}
+ }catch(Throwable $e){@fwrite($socket,"QUIT\r\n");@fclose($socket);try{db()->prepare('INSERT INTO mail_delivery_log(recipient,subject,status,error_message) VALUES(?,?,?,?)')->execute([$to,$subject,'failed',substr($e->getMessage(),0,1000)]);}catch(Throwable $logError){error_log('Mail delivery failure log failed: '.$logError->getMessage());}return ['ok'=>false,'error'=>$e->getMessage()];}
 }
 function app_send_mail(string $to,string $subject,string $html,array $attachments=[]): bool { return app_send_mail_detailed($to,$subject,$html,$attachments)['ok']; }
 function znp_system_diagnostics(): array {
  $uploadDir=__DIR__.'/../uploads';$dataDir=__DIR__.'/../data';
- $dbOk=false;try{$dbOk=(bool)db()->query('SELECT 1')->fetchColumn();}catch(Throwable $e){}
+ $dbOk=false;try{$dbOk=(bool)db()->query('SELECT 1')->fetchColumn();}catch(Throwable $e){error_log('System diagnostics database check failed: '.$e->getMessage());}
  return [
   ['label'=>'Database','ok'=>$dbOk,'detail'=>$dbOk?'Connected':'Connection failed'],
   ['label'=>'SMTP Configuration','ok'=>smtp_configured(),'detail'=>smtp_configured()?'Configured':'Not configured'],
@@ -233,16 +198,7 @@ function app_public_url(string $path=''): string {
  $base=preg_replace('#/admin/[^/]*$#','',$script);
  return ($https?'https':'http').'://'.$host.rtrim((string)$base,'/').'/'.ltrim($path,'/');
 }
-function project_nda_pdf(array $lead,array $project): string {
- return generic_nda_pdf(($lead['full_name']??'Recipient').' regarding '.($project['project_name']??'the Project'));
-}
-function document_template_for_project(int $projectId): ?array {
- $s=db()->prepare("SELECT * FROM document_templates WHERE project_id=? AND document_type='nda' AND is_active=1 LIMIT 1");$s->execute([$projectId]);$r=$s->fetch();return $r?:null;
-}
-
-
 /* Version 1.6.2: eligible agreements and contact activity */
-function agreement_entity_key(string $type,int $id): string { return ($type==='opportunity'?'opportunity':'project').':'.$id; }
 function eligible_agreement_entities(): array {
  $rows=[];
  foreach(db()->query("SELECT id,project_name AS name,city,state,'project' AS entity_type FROM projects WHERE portfolio_category='under_development' AND is_visible=1 ORDER BY display_order,project_name")->fetchAll() as $r){$rows[]=$r;}
@@ -254,16 +210,11 @@ function agreement_entity(string $type,int $id): ?array {
  else{$s=db()->prepare("SELECT id,project_name AS name,city,state,'project' AS entity_type FROM projects WHERE id=? AND portfolio_category='under_development' AND is_visible=1");}
  $s->execute([$id]);$r=$s->fetch();return $r?:null;
 }
-function document_template_for_entity(string $type,int $id): ?array {
- if($type==='opportunity'){$s=db()->prepare("SELECT * FROM document_templates WHERE investment_opportunity_id=? AND document_type='nda' AND is_active=1 LIMIT 1");}
- else{$s=db()->prepare("SELECT * FROM document_templates WHERE project_id=? AND document_type='nda' AND is_active=1 LIMIT 1");}
- $s->execute([$id]);$r=$s->fetch();return $r?:null;
-}
 function contact_activity_log(string $type,int $id,string $event,string $title,?string $details=null,?int $adminId=null,?int $deliveryId=null,?string $occurredAt=null): void {
- try{$s=db()->prepare('INSERT INTO contact_activity(contact_type,contact_id,event_type,title,details,admin_user_id,document_delivery_id,occurred_at) VALUES(?,?,?,?,?,?,?,COALESCE(?,NOW()))');$s->execute([$type,$id,$event,$title,$details,$adminId,$deliveryId,$occurredAt]);}catch(Throwable $e){}
+ try{$s=db()->prepare('INSERT INTO contact_activity(contact_type,contact_id,event_type,title,details,admin_user_id,document_delivery_id,occurred_at) VALUES(?,?,?,?,?,?,?,COALESCE(?,NOW()))');$s->execute([$type,$id,$event,$title,$details,$adminId,$deliveryId,$occurredAt]);}catch(Throwable $e){error_log('Contact activity write failed: '.$e->getMessage());}
 }
 function contact_activity_rows(string $type,int $id): array {
- try{$s=db()->prepare('SELECT a.*,u.full_name AS admin_name FROM contact_activity a LEFT JOIN admin_users u ON u.id=a.admin_user_id WHERE a.contact_type=? AND a.contact_id=? ORDER BY a.occurred_at DESC,a.id DESC');$s->execute([$type,$id]);return $s->fetchAll();}catch(Throwable $e){return [];}
+ try{$s=db()->prepare('SELECT a.*,u.full_name AS admin_name FROM contact_activity a LEFT JOIN admin_users u ON u.id=a.admin_user_id WHERE a.contact_type=? AND a.contact_id=? ORDER BY a.occurred_at DESC,a.id DESC');$s->execute([$type,$id]);return $s->fetchAll();}catch(Throwable $e){error_log('Contact activity read failed: '.$e->getMessage());return [];}
 }
 function contact_changed_fields(array $before,array $after,array $labels): array {
  $changes=[];foreach($labels as $key=>$label){$old=trim((string)($before[$key]??''));$new=trim((string)($after[$key]??''));if($old!==$new)$changes[]=$label.': '.($old===''?'Not provided':$old).' → '.($new===''?'Not provided':$new);}return $changes;
@@ -352,7 +303,7 @@ function contact_spam_check(array $post): array {
   $fingerprint=hash('sha256',strtolower($email).'|'.strtolower($name).'|'.$message);
   $q=db()->prepare('SELECT COUNT(*) FROM public_form_submissions WHERE fingerprint=? AND submitted_at>=DATE_SUB(NOW(),INTERVAL 10 MINUTE)');$q->execute([$fingerprint]);if((int)$q->fetchColumn()>0)return [false,'This message was already received.'];
   db()->prepare('INSERT INTO public_form_submissions(ip_hash,fingerprint,submitted_at) VALUES(?,?,NOW())')->execute([$ipHash,$fingerprint]);
- }catch(Throwable $e){}
+ }catch(Throwable $e){error_log('Public form anti-spam check failed: '.$e->getMessage());return [false,'The form is temporarily unavailable. Please try again later.'];}
  return [true,''];
 }
 

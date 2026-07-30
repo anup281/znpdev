@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $displayOrder = (int) ($_POST['display_order'] ?? 0);
         $isActive = isset($_POST['is_active']) ? 1 : 0;
         $headshot = trim($_POST['existing_headshot'] ?? '');
+        $oldHeadshot = trim((string)($member['headshot'] ?? ''));
 
         if ($fullName === '' || $title === '') {
             $error = 'Name and title are required.';
@@ -100,6 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             try {
                 db()->prepare($sql)->execute($values);
+                if ($oldHeadshot !== '' && $headshot !== $oldHeadshot && !app_delete_managed_file($oldHeadshot, ['assets/images/team'])) {
+                    error_log('Replaced team headshot could not be removed: '.$oldHeadshot);
+                }
                 header('Location: team.php?saved=1');
                 exit;
             } catch (Throwable $exception) {

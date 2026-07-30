@@ -123,15 +123,24 @@ if (!function_exists('znp_workspace_bootstrap')) {
                 header('Location: '.app_url('/dev/'));
                 exit;
             }
+            enforce_admin_page_access($staff);
             $user = $staff;
         } elseif ($workspace === 'construction') {
             if (!$staff) {
                 znp_workspace_redirect_to_login($returnKey, $loginUrl);
             }
+            if (investments_only_role($staff)) {
+                http_response_code(403);
+                exit('This account is restricted to Website > Investments.');
+            }
             $user = $staff;
         } elseif ($workspace === 'management') {
             if (!$staff) {
                 znp_workspace_redirect_to_login($returnKey, $loginUrl);
+            }
+            if (investments_only_role($staff)) {
+                http_response_code(403);
+                exit('This account is restricted to Website > Investments.');
             }
             $normalizedRole = function_exists('normalized_role') ? normalized_role((string)($staff['role'] ?? '')) : strtolower(str_replace('_', ' ', (string)($staff['role'] ?? '')));
             if (!in_array($normalizedRole, ['super admin', 'super administrator'], true)) {

@@ -11,6 +11,11 @@ if (($current['role'] ?? '') !== 'super_admin') {
 
 $id = (int) ($_GET['id'] ?? 0);
 $error = '';
+$investmentAccessReady=investment_user_access_ready();
+$managedRoleCondition="LOWER(REPLACE(role,'_',' ')) IN ('super admin','super administrator','admin','administrator','investments only','investment only','investment','investor')";
+if($investmentAccessReady)$managedRoleCondition.=" OR (COALESCE(role,'')='' AND EXISTS (SELECT 1 FROM investment_user_access iua WHERE iua.admin_user_id=admin_users.id))";
+$investments=db()->query('SELECT id,project_name,status FROM investment_opportunities ORDER BY project_name')->fetchAll();
+$selectedInvestmentIds=[];
 
 $account = [
     'full_name' => '',
@@ -22,7 +27,7 @@ $account = [
 
 if ($id > 0) {
     $statement = db()->prepare(
-        "SELECT id,full_name,username,email,role,is_active FROM admin_users WHERE id = ? AND LOWER(REPLACE(role,'_',' ')) IN ('super admin','super administrator','admin','administrator')"
+        "SELECT id,full_name,username,email,role,is_active FROM admin_users WHERE id = ? AND ($managedRoleCondition)"
     );
     $statement->execute([$id]);
     $foundAccount = $statement->fetch();
@@ -31,6 +36,12 @@ if ($id > 0) {
         exit('Administrator account not found. Construction users are managed in the Construction Portal.');
     }
     $account = $foundAccount;
+    if(investments_only_role($account))$account['role']='investments_only';
+    if($investmentAccessReady){
+        $accessStatement=db()->prepare('SELECT investment_opportunity_id FROM investment_user_access WHERE admin_user_id=?');
+        $accessStatement->execute([$id]);
+        $selectedInvestmentIds=array_map('intval',$accessStatement->fetchAll(PDO::FETCH_COLUMN));
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -44,11 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $isActive = isset($_POST['is_active']) ? 1 : 0;
         $password = (string)($_POST['password'] ?? '');
         $confirmPassword = (string)($_POST['password_confirmation'] ?? '');
+        $selectedInvestmentIds=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['investment_ids']??[])),static fn($value)=>$value>0)));
 
         if ($name === '' || !preg_match('/^[a-z0-9._]{3,40}$/', $username) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Enter a valid name, username, and email address. Usernames may use letters, numbers, periods, and underscores.';
-        } elseif (!in_array($role, ['super_admin','admin'], true)) {
+        } elseif (!in_array($role, ['super_admin','admin','investments_only'], true)) {
             $error = 'Select a valid role.';
+        } elseif ($role==='investments_only'&&!$investmentAccessReady) {
+            $error = 'Install the Investment User Access upgrade before creating an Investments Only account.';
         } elseif ($id === (int)($current['id'] ?? 0) && !$isActive) {
             $error = 'You cannot disable the account currently signed in.';
         } elseif (($id === 0 || $password !== '') && strlen($password) < 12) {
@@ -70,6 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$error) {
             try {
+            db()->beginTransaction();
+            $savedId=$id;
             if ($id > 0) {
                 if ($password !== '') {
                     $statement = db()->prepare(
@@ -109,11 +125,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $isActive,
                     password_hash($password, PASSWORD_DEFAULT),
                 ]);
+                $savedId=(int)db()->lastInsertId();
             }
 
+            if($investmentAccessReady){
+                db()->prepare('DELETE FROM investment_user_access WHERE admin_user_id=?')->execute([$savedId]);
+                if($role==='investments_only'&&$selectedInvestmentIds){
+                    $validMarks=implode(',',array_fill(0,count($selectedInvestmentIds),'?'));
+                    $validStatement=db()->prepare("SELECT id FROM investment_opportunities WHERE id IN ($validMarks)");
+                    $validStatement->execute($selectedInvestmentIds);
+                    $validIds=array_map('intval',$validStatement->fetchAll(PDO::FETCH_COLUMN));
+                    if(count($validIds)!==count($selectedInvestmentIds))throw new RuntimeException('One or more selected investments are invalid.');
+                    $assign=db()->prepare('INSERT INTO investment_user_access(admin_user_id,investment_opportunity_id,assigned_by_admin_user_id) VALUES(?,?,?)');
+                    foreach($validIds as $investmentId)$assign->execute([$savedId,$investmentId,(int)($current['id']??0)]);
+                }
+            }
+            db()->commit();
             header('Location: users.php?saved=1');
             exit;
             } catch (Throwable $exception) {
+                if(db()->inTransaction())db()->rollBack();
+                error_log('Admin account save failed: '.$exception->getMessage());
                 $error = 'The administrator account could not be saved. Please verify the information and try again.';
             }
         }
@@ -169,6 +201,7 @@ require __DIR__ . '/_header.php';
         <?php foreach ([
           'super_admin' => 'Super Admin',
           'admin' => 'Admin',
+          'investments_only' => 'Investments Only',
         ] as $value => $label): ?>
           <option value="<?= e($value) ?>" <?= $account['role'] === $value ? 'selected' : '' ?>>
             <?= e($label) ?>
@@ -183,6 +216,25 @@ require __DIR__ . '/_header.php';
       </label>
     </div>
   </div>
+
+  <section class="admin-password-panel">
+    <h2>Investment Access</h2>
+    <?php if(!$investmentAccessReady):?>
+      <p>The access table is not installed. <a href="upgrade_investment_user_access.php">Run the Investment User Access installer</a> before selecting Investments Only.</p>
+    <?php elseif(!$investments):?>
+      <p>No investments are available to assign.</p>
+    <?php else:?>
+      <p>Select every investment this account may open. These assignments apply when the role is Investments Only.</p>
+      <div class="admin-form-grid">
+        <?php foreach($investments as $investment):?>
+          <label class="admin-checkbox-panel">
+            <span class="admin-checkbox"><input type="checkbox" name="investment_ids[]" value="<?=(int)$investment['id']?>" <?=in_array((int)$investment['id'],$selectedInvestmentIds,true)?'checked':''?>> <?=e((string)$investment['project_name'])?></span>
+            <small><?=e(ucwords(str_replace('_',' ',(string)$investment['status'])))?></small>
+          </label>
+        <?php endforeach;?>
+      </div>
+    <?php endif;?>
+  </section>
 
   <div class="admin-password-panel">
     <h2><?= $id ? 'Set a New Password' : 'Password' ?></h2>

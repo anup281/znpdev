@@ -9,7 +9,7 @@ function project_team_phone_format(string $phone): string {
     if(strlen($digits)===11&&$digits[0]==='1')$digits=substr($digits,1);
     return strlen($digits)===10?substr($digits,0,3).'-'.substr($digits,3,3).'-'.substr($digits,6):$phone;
 }
-try{$q=db()->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='construction_project_contacts'");$q->execute();$projectContactsReady=(int)$q->fetchColumn()>0;}catch(Throwable $ignored){}
+try{$q=db()->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='construction_project_contacts'");$q->execute();$projectContactsReady=(int)$q->fetchColumn()>0;}catch(Throwable $exception){error_log('Project contacts schema check failed: '.$exception->getMessage());}
 
 if($_SERVER['REQUEST_METHOD']==='POST')try{
     if(!csrf_check((string)($_POST['csrf']??'')))throw new RuntimeException('Session expired.');
@@ -23,12 +23,12 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
     }
     if(in_array($action,['add_project_contact','remove_project_contact'],true)){
         if(!dev_is_super())throw new RuntimeException('Only an Admin or Super Admin may manage project contacts.');
-        if(!$projectContactsReady)throw new RuntimeException('Install the Version 5.2.0 Project Contacts upgrade first.');
+        if(!$projectContactsReady)throw new RuntimeException('Project contacts are unavailable because the required database table is missing. Contact the system administrator.');
         if($action==='remove_project_contact'){
             $contactId=(int)($_POST['contact_id']??0);
             $q=db()->prepare('UPDATE construction_project_contacts SET is_active=0,updated_at=NOW() WHERE id=? AND construction_project_id=? AND is_active=1');$q->execute([$contactId,$projectId]);
             if(!$q->rowCount())throw new RuntimeException('Project contact was not found.');
-            try{dev_activity($projectId,'project_contact_removed','Non-vendor project contact removed.','project_contact',$contactId);}catch(Throwable $ignored){}
+            try{dev_activity($projectId,'project_contact_removed','Non-vendor project contact removed.','project_contact',$contactId);}catch(Throwable $exception){error_log('Project contact removal activity log failed: '.$exception->getMessage());}
             header("Location: project_team.php?project_id=$projectId&contact_removed=1");exit;
         }
         $role=trim((string)($_POST['role_title']??''));$organization=trim((string)($_POST['organization_name']??''));$name=trim((string)($_POST['contact_name']??''));$phone=trim((string)($_POST['phone']??''));$email=trim((string)($_POST['email']??''));$address=trim((string)($_POST['address']??''));$notes=trim((string)($_POST['notes']??''));
@@ -38,7 +38,7 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
         if(strlen($role)>150||strlen($organization)>190||strlen($name)>190||strlen($phone)>50)throw new RuntimeException('One or more project contact fields are too long.');
         if($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid email address.');
         $q=db()->prepare('INSERT INTO construction_project_contacts(construction_project_id,role_title,organization_name,contact_name,phone,email,address,notes,is_active,created_by_admin_user_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,1,?,NOW(),NOW())');$q->execute([$projectId,$role,$organization,$name,$phone,$email,$address,$notes,$user['id']??null]);$contactId=(int)db()->lastInsertId();
-        try{dev_activity($projectId,'project_contact_added','Project contact added: '.$role.' — '.($organization?:$name),'project_contact',$contactId);}catch(Throwable $ignored){}
+        try{dev_activity($projectId,'project_contact_added','Project contact added: '.$role.' — '.($organization?:$name),'project_contact',$contactId);}catch(Throwable $exception){error_log('Project contact creation activity log failed: '.$exception->getMessage());}
         header("Location: project_team.php?project_id=$projectId&contact_saved=1");exit;
     }
     $choice=trim((string)($_POST['vendor_trade_choice']??''));

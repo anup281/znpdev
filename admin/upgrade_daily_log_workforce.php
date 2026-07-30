@@ -16,12 +16,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $pdo->exec("UPDATE construction_daily_log_workforce SET source_key=CONCAT(source_type,'_',source_id) WHERE source_key IS NULL OR source_key=''");
             $column=$pdo->query("SHOW COLUMNS FROM construction_daily_log_workforce LIKE 'source_key'")->fetch();
             if(strtoupper((string)($column['Null']??'YES'))!=='NO')$pdo->exec("ALTER TABLE construction_daily_log_workforce MODIFY source_key varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL");
-            $index=$pdo->query("SHOW INDEX FROM construction_daily_log_workforce WHERE Key_name='uq_daily_log_workforce_source' ORDER BY Seq_in_index")->fetchAll();
+            $index=$pdo->query("SHOW INDEX FROM construction_daily_log_workforce WHERE Key_name='uq_daily_log_workforce_source'")->fetchAll();
+            usort($index,static fn(array $a,array $b): int=>((int)($a['Seq_in_index']??0))<=>((int)($b['Seq_in_index']??0)));
             $columns=array_map(static fn(array $row):string=>(string)$row['Column_name'],$index);
             $expected=['daily_log_id','source_type','source_key'];
             if($columns!==$expected){if($index)$pdo->exec('ALTER TABLE construction_daily_log_workforce DROP INDEX uq_daily_log_workforce_source');$pdo->exec('ALTER TABLE construction_daily_log_workforce ADD UNIQUE KEY uq_daily_log_workforce_source (daily_log_id,source_type,source_key)');}
             $message='Company + Trade Daily Log upgrade completed successfully.';
-        }catch(Throwable $exception){$error='Upgrade failed: '.$exception->getMessage();}
+        }catch(Throwable $exception){error_log('Daily Log workforce upgrade failed: '.$exception->getMessage());$error='Upgrade failed: '.$exception->getMessage();}
     }
 }
 require __DIR__.'/_header.php';

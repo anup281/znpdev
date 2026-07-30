@@ -7,11 +7,11 @@ $row=['project_name'=>'','portfolio_category'=>'under_development','city'=>'','s
 $categoryOptions=['under_development'=>'Under Development','commercial'=>'Commercial','residential'=>'Residential'];
 $portfolioStatusOptions=[''=>'Select status','Owned and Managed'=>'Owned and Managed','Owned and Third Party Managed'=>'Owned and Third Party Managed','Sold'=>'Sold','Under Construction'=>'Under Construction','Under Management'=>'Under Management'];
 $statusOptions=['Planned'=>'Planned','Under Development'=>'Under Development','Completed'=>'Completed','On Hold'=>'On Hold','Cancelled'=>'Cancelled'];
-$assetOptions=['Hotel','Multifamily','Townhome Community','Residential','Commercial','Mixed Use','Land Development'];$projectTypeOptions=['Ground-Up Development','Renovation','Brand Conversion','Acquisition','Redevelopment'];try{foreach(db()->query("SELECT DISTINCT asset_type FROM projects WHERE asset_type IS NOT NULL AND asset_type<>'' ORDER BY asset_type")->fetchAll(PDO::FETCH_COLUMN) as $v)if(!in_array($v,$assetOptions,true))$assetOptions[]=$v;foreach(db()->query("SELECT DISTINCT project_type FROM projects WHERE project_type IS NOT NULL AND project_type<>'' ORDER BY project_type")->fetchAll(PDO::FETCH_COLUMN) as $v)if(!in_array($v,$projectTypeOptions,true))$projectTypeOptions[]=$v;}catch(Throwable $e){}
+$assetOptions=['Hotel','Multifamily','Townhome Community','Residential','Commercial','Mixed Use','Land Development'];$projectTypeOptions=['Ground-Up Development','Renovation','Brand Conversion','Acquisition','Redevelopment'];try{foreach(db()->query("SELECT DISTINCT asset_type FROM projects WHERE asset_type IS NOT NULL AND asset_type<>'' ORDER BY asset_type")->fetchAll(PDO::FETCH_COLUMN) as $v)if(!in_array($v,$assetOptions,true))$assetOptions[]=$v;foreach(db()->query("SELECT DISTINCT project_type FROM projects WHERE project_type IS NOT NULL AND project_type<>'' ORDER BY project_type")->fetchAll(PDO::FETCH_COLUMN) as $v)if(!in_array($v,$projectTypeOptions,true))$projectTypeOptions[]=$v;}catch(Throwable $e){error_log('Project option lookup failed: '.$e->getMessage());}
 if($id){$st=db()->prepare('SELECT * FROM projects WHERE id=?');$st->execute([$id]);$row=$st->fetch()?:$row;}
 if($_SERVER['REQUEST_METHOD']==='POST'){
  if(!csrf_check($_POST['csrf_token']??'')){$error='Your session expired. Refresh and try again.';}else{
-  $name=trim((string)($_POST['project_name']??''));$cat=(string)($_POST['portfolio_category']??'');$status=trim((string)($_POST['status']??''));$img=trim((string)($_POST['existing_primary_image']??''));
+  $name=trim((string)($_POST['project_name']??''));$cat=(string)($_POST['portfolio_category']??'');$status=trim((string)($_POST['status']??''));$img=trim((string)($_POST['existing_primary_image']??''));$oldImg=trim((string)($row['primary_image']??''));
   if($name==='')$error='Project name is required.'; elseif(!isset($categoryOptions[$cat]))$error='Select a valid project category.'; elseif(!isset($statusOptions[$status]))$error='Select a valid project status.';
   if(!$error&&isset($_FILES['primary_image'])&&$_FILES['primary_image']['error']!==UPLOAD_ERR_NO_FILE){
    try {
@@ -26,7 +26,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $vals=[$name,$cat,trim((string)($_POST['city']??'')),trim((string)($_POST['state']??'')),$status,$val,trim((string)($_POST['asset_type']??'')),trim((string)($_POST['project_type']??'')),trim((string)($_POST['year_completed_or_expected']??'')),trim((string)($_POST['units_or_keys']??'')),$portfolioStatus?:null,$img?:null,(int)($_POST['display_order']??0),isset($_POST['is_visible'])?1:0,isset($_POST['is_homepage_featured'])?1:0];
    if($id){$vals[]=$id;$sql='UPDATE projects SET project_name=?,portfolio_category=?,city=?,state=?,status=?,project_value=?,asset_type=?,project_type=?,year_completed_or_expected=?,units_or_keys=?,portfolio_status=?,primary_image=?,display_order=?,is_visible=?,is_homepage_featured=? WHERE id=?';}
    else{$sql='INSERT INTO projects (project_name,portfolio_category,city,state,status,project_value,asset_type,project_type,year_completed_or_expected,units_or_keys,portfolio_status,primary_image,display_order,is_visible,is_homepage_featured) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';}
-   db()->prepare($sql)->execute($vals);header('Location: projects.php?saved=1'); exit;
+   db()->prepare($sql)->execute($vals);if($oldImg!==''&&$img!==$oldImg&&!app_delete_managed_file($oldImg,['assets/images/projects']))error_log('Replaced project image could not be removed: '.$oldImg);header('Location: projects.php?saved=1'); exit;
   }
  }
 }

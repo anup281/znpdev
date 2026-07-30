@@ -6,10 +6,10 @@ $projectId=dev_active_project_id((int)($_GET['project_id']??$_POST['project_id']
 $headerProjects=dev_projects();
 $currentUser=admin_user();
 $currentProject=$projectId?dev_project($projectId):null;
-$projectPages=['project.php','progress.php','buildings.php','schedule.php','documents.php','project_team.php','daily_logs.php','photo_recovery.php','photos.php','expenses.php'];
+$projectPages=['project.php','progress.php','buildings.php','schedule.php','documents.php','project_team.php','daily_logs.php','photos.php','expenses.php'];
 $projectsActive=in_array($current,array_merge(['projects.php'],$projectPages),true);
 $insideActiveProject=$projectId>0 && in_array($current,$projectPages,true) && $currentProject && dev_can_access($projectId);
-$projectTabMap=['project.php'=>'overview','progress.php'=>'progress','buildings.php'=>'progress','schedule.php'=>'progress','documents.php'=>'documents','project_team.php'=>'team','daily_logs.php'=>'logs','photo_recovery.php'=>'logs','photos.php'=>'photos','expenses.php'=>'expenses'];
+$projectTabMap=['project.php'=>'overview','progress.php'=>'progress','buildings.php'=>'progress','schedule.php'=>'progress','documents.php'=>'documents','project_team.php'=>'team','daily_logs.php'=>'logs','photos.php'=>'photos','expenses.php'=>'expenses'];
 $activeProjectTab=$projectTabMap[$current]??'';
 $mobileProjectId=$projectId;
 $projectUrl=static function(string $page) use ($mobileProjectId): string {

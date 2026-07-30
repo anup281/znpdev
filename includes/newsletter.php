@@ -13,7 +13,6 @@ function newsletter_subscribe(string $email,string $name='',string $source='webs
  return ['ok'=>true,'message'=>'Thank you for subscribing.'];
 }
 function newsletter_unsubscribe_url(array $subscriber): string { return app_public_url('newsletter_unsubscribe.php?token='.rawurlencode((string)$subscriber['unsubscribe_token'])); }
-function newsletter_plain_text(string $html): string { return trim(preg_replace('/\s{3,}/','\n\n',html_entity_decode(strip_tags(str_replace(['<br>','<br/>','<br />','</p>'],["\n","\n","\n","</p>\n"],$html)),ENT_QUOTES|ENT_HTML5,'UTF-8'))); }
 function newsletter_track_links(string $html,int $deliveryId): string {
  return preg_replace_callback('/href=("|\')(https?:\/\/[^"\']+)\1/i',function($m)use($deliveryId){$url=app_public_url('newsletter_click.php?d='.$deliveryId.'&u='.rawurlencode(base64_encode($m[2])));return 'href='.$m[1].e($url).$m[1];},$html)??$html;
 }
@@ -63,13 +62,6 @@ function newsletter_send_campaign_now(int $campaignId): array {
  }
  $pdo->prepare("UPDATE newsletter_campaigns SET status='sent',completed_at=NOW() WHERE id=?")->execute([$campaignId]);
  return ['sent'=>$sent,'failed'=>$failed,'skipped'=>$skipped,'total'=>count($subscribers)];
-}
-function newsletter_queue_campaign(int $campaignId): int {
- $pdo=db();$pdo->beginTransaction();
- try{$campaign=$pdo->prepare('SELECT id FROM newsletter_campaigns WHERE id=? FOR UPDATE');$campaign->execute([$campaignId]);if(!$campaign->fetch())throw new RuntimeException('Campaign not found.');
-  $sql="INSERT IGNORE INTO newsletter_deliveries(campaign_id,subscriber_id,recipient_email,status) SELECT ?,id,email,'queued' FROM newsletter_subscribers WHERE status='active'";$s=$pdo->prepare($sql);$s->execute([$campaignId]);
-  $pdo->prepare("UPDATE newsletter_campaigns SET status='queued',queued_at=NOW() WHERE id=?")->execute([$campaignId]);$count=$s->rowCount();$pdo->commit();return $count;
- }catch(Throwable $e){$pdo->rollBack();throw $e;}
 }
 function newsletter_process_queue(int $limit=25): array {
  $pdo=db();$done=0;$failed=0;

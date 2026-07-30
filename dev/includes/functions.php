@@ -8,10 +8,6 @@ function dev_is_super(): bool {
     $role = preg_replace('/\s+/', ' ', $role);
     return in_array($role, ['super admin', 'super administrator', 'administrator', 'admin'], true);
 }
-function dev_is_construction_only(): bool {
-    $u = admin_user();
-    return $u && (int)($u['construction_only'] ?? 0) === 1;
-}
 function dev_can_access(int $projectId): bool {
     if(dev_is_super()) return true;
     $u=admin_user(); if(!$u) return false;
@@ -85,12 +81,6 @@ function dev_schedule_template_items(string $scope): array {
     }
     return $rows;
 }
-function dev_master_schedule_template(): array {
-    return array_column(dev_schedule_template_items('Project'), 'activity_name');
-}
-function dev_building_schedule_template(): array {
-    return array_column(dev_schedule_template_items('Building'), 'activity_name');
-}
 function dev_initialize_schedule(int $projectId, ?int $buildingId, string $scope, ?string $startDate=null): void {
     $check=db()->prepare('SELECT COUNT(*) FROM construction_schedule_items WHERE construction_project_id=? AND schedule_scope=? AND '.($buildingId?'construction_building_id=?':'construction_building_id IS NULL'));
     $params=[$projectId,$scope]; if($buildingId)$params[]=$buildingId; $check->execute($params); if((int)$check->fetchColumn()>0)return;
@@ -127,14 +117,6 @@ function dev_compress_image(array $file,string $folder='daily-logs',int $maxByte
     return ['path'=>'uploads/dev/'.$folder.'/'.basename($dest),'name'=>(string)$file['name'],'mime'=>'image/jpeg','size'=>(int)filesize($dest)];
 }
 function dev_compress_images(array $files,string $folder='daily-logs'): array {$out=[];$names=$files['name']??[];if(!is_array($names)){$one=dev_compress_image($files,$folder);return $one?[$one]:[];}foreach($names as $i=>$name){$f=['name'=>$name,'type'=>$files['type'][$i]??'','tmp_name'=>$files['tmp_name'][$i]??'','error'=>$files['error'][$i]??UPLOAD_ERR_NO_FILE,'size'=>$files['size'][$i]??0];$one=dev_compress_image($f,$folder);if($one)$out[]=$one;}return $out;}
-function dev_weather_snapshots(array $project,string $logDate,?string $createdAt=null): array {
-    $city=trim((string)($project['city']??''));$state=trim((string)($project['state']??''));if($city==='')return [];
-    $cutoff=$createdAt?strtotime($createdAt):time();$today=date('Y-m-d',$cutoff);$hours=[8,12,15];$eligible=[];foreach($hours as $h){$ts=strtotime($logDate.' '.sprintf('%02d:00:00',$h));if($logDate<$today||$ts<=$cutoff)$eligible[]=$h;}if(!$eligible)return [];
-    $ctx=stream_context_create(['http'=>['timeout'=>8,'user_agent'=>'ZNP Construction Portal']]);
-    $geoUrl='https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name='.rawurlencode($city.', '.$state);$geo=@file_get_contents($geoUrl,false,$ctx);$g=$geo?json_decode($geo,true):null;if(empty($g['results'][0]))return [];$lat=$g['results'][0]['latitude'];$lon=$g['results'][0]['longitude'];
-    $isPast=$logDate<date('Y-m-d');$base=$isPast?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';$url=$base.'?latitude='.$lat.'&longitude='.$lon.'&start_date='.$logDate.'&end_date='.$logDate.'&hourly=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto';$raw=@file_get_contents($url,false,$ctx);$data=$raw?json_decode($raw,true):null;if(empty($data['hourly']['time']))return [];
-    $out=[];foreach($eligible as $h){$needle=$logDate.'T'.sprintf('%02d:00',$h);$idx=array_search($needle,$data['hourly']['time'],true);if($idx===false)continue;$code=(int)($data['hourly']['weather_code'][$idx]??0);$labels=[0=>'Clear',1=>'Mostly Clear',2=>'Partly Cloudy',3=>'Cloudy',45=>'Fog',48=>'Fog',51=>'Light Drizzle',53=>'Drizzle',55=>'Heavy Drizzle',61=>'Light Rain',63=>'Rain',65=>'Heavy Rain',71=>'Light Snow',73=>'Snow',75=>'Heavy Snow',80=>'Rain Showers',81=>'Rain Showers',82=>'Heavy Showers',95=>'Thunderstorm',96=>'Thunderstorm',99=>'Severe Thunderstorm'];$out[]=['time'=>date('g A',strtotime($needle)),'temperature'=>$data['hourly']['temperature_2m'][$idx]??null,'condition'=>$labels[$code]??'Weather','humidity'=>$data['hourly']['relative_humidity_2m'][$idx]??null,'precipitation'=>$data['hourly']['precipitation'][$idx]??null,'wind'=>$data['hourly']['wind_speed_10m'][$idx]??null];}return $out;
-}
 
 
 function dev_active_project_id(int $candidate=0): int {
@@ -148,12 +130,4 @@ function dev_active_project_id(int $candidate=0): int {
     $fallback = !empty($projects) ? (int)$projects[0]['id'] : 0;
     if ($fallback > 0) $_SESSION['dev_active_project_id'] = $fallback;
     return $fallback;
-}
-function dev_company_trade_names(int $companyId): string {
-    $s=db()->prepare("SELECT GROUP_CONCAT(t.trade_name ORDER BY t.display_order,t.trade_name SEPARATOR ', ') FROM construction_company_trades ct JOIN construction_trades t ON t.id=ct.construction_trade_id AND t.is_active=1 WHERE ct.construction_company_id=? AND ct.archived_at IS NULL");
-    $s->execute([$companyId]);
-    $v=trim((string)$s->fetchColumn());
-    if($v!=='') return $v;
-    $s=db()->prepare('SELECT primary_trade FROM construction_companies WHERE id=?');$s->execute([$companyId]);
-    return trim((string)$s->fetchColumn());
 }

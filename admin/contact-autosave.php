@@ -37,7 +37,7 @@ function autosave_extended_row(string $recordType, int $recordId): array
 
 function autosave_extended_fields(string $recordType, int $recordId, array $fields): void
 {
-    if (!autosave_extended_ready()) throw new RuntimeException('Install the Contact Fields database upgrade before saving these fields.');
+    if (!autosave_extended_ready()) throw new RuntimeException('Contact fields are unavailable because the required database structure is missing. Contact the system administrator.');
     $stmt = db()->prepare('INSERT INTO contact_extended_fields(record_type,record_id,company_name,inquiry_type,prospective_investor_type,investment_amount,message) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE company_name=VALUES(company_name),inquiry_type=VALUES(inquiry_type),prospective_investor_type=VALUES(prospective_investor_type),investment_amount=VALUES(investment_amount),message=VALUES(message)');
     $stmt->execute([
         $recordType, $recordId,
@@ -95,7 +95,7 @@ try {
             db()->prepare('UPDATE contact_inquiries SET full_name=?,email=?,phone=?,company_name=?,inquiry_type=?,prospective_investor_type=?,investment_amount=?,status=? WHERE id=?')
                 ->execute([$name,$email,$phone,$company,$type,$investorType!==''?$investorType:null,$investmentAmount!==''?$investmentAmount:null,$status,$recordId]);
         }
-        try { contact_activity_log($recordType,$recordId,'contact_updated','Contact information updated','Saved automatically.',admin_user()['id']??null); } catch (Throwable $ignored) {}
+        contact_activity_log($recordType,$recordId,'contact_updated','Contact information updated','Saved automatically.',admin_user()['id']??null);
         autosave_json(['ok'=>true,'message'=>'Saved','status'=>$status,'name'=>$name,'email'=>$email,'phone'=>$phone]);
     }
 
@@ -118,7 +118,7 @@ try {
                 ->execute(array_merge([$recordType,$recordId],array_values($toRemove)));
         }
         db()->commit();
-        try { contact_activity_log($recordType,$recordId,'project_interests_updated','Projects of interest updated',count($selected).' project(s) selected',admin_user()['id']??null); } catch (Throwable $ignored) {}
+        contact_activity_log($recordType,$recordId,'project_interests_updated','Projects of interest updated',count($selected).' project(s) selected',admin_user()['id']??null);
         autosave_json(['ok'=>true,'message'=>'Saved','count'=>count($selected)]);
     }
 
