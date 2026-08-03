@@ -1,0 +1,10 @@
+{
+    "name": "znp/development-platform",
+    "description": "ZNP Development Platform",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "aws/aws-sdk-php": "^3.0",
+        "smalot/pdfparser": "^2.12"
+    }
+}

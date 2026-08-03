@@ -26,10 +26,15 @@ function znp_daily_table_exists($table){
     }catch(Throwable $e){ return $cache[$table]=false; }
 }
 function znp_daily_photo_url(string $path): string {
-    $path=ltrim(str_replace('\\','/',$path),'/');
-    if(strpos($path,'uploads/')===0) return '../'.$path;
-    if(strpos($path,'dev/uploads/')===0) return '../'.substr($path,4);
-    return '../uploads/dev/daily-logs/'.basename($path);
+    $normalized=ltrim(str_replace('\\','/',$path),'/');
+    if(strpos($normalized,'uploads/')===false)$normalized='uploads/dev/daily-logs/'.basename($normalized);
+    return znp_storage_url($normalized);
+}
+function znp_daily_text_lines(string $value): array {
+    $lines=preg_split('/\r?\n/',$value)?:[];
+    return array_values(array_filter(array_map(static function(string $line):string{
+        return trim((string)preg_replace('/^\s*[-*•]\s*/u','',$line));
+    },$lines),static fn(string $line):bool=>$line!==''));
 }
 function znp_daily_log(int $id,int $projectId): ?array {
     $s=db()->prepare('SELECT * FROM construction_daily_logs WHERE id=? AND construction_project_id=? LIMIT 1');
@@ -38,11 +43,13 @@ function znp_daily_log(int $id,int $projectId): ?array {
     return $row?:null;
 }
 function znp_daily_remove_file(string $relativePath): void {
-    $relativePath=ltrim(str_replace('\\','/',$relativePath),'/');
-    if(strpos($relativePath,'uploads/dev/')!==0) return;
-    $root=realpath(__DIR__.'/..');
-    $target=realpath(__DIR__.'/../'.$relativePath);
-    if($root && $target && strpos($target,$root.DIRECTORY_SEPARATOR)===0 && is_file($target)) @unlink($target);
+    try{
+        $storageKey=znp_storage_key($relativePath);
+        if(strpos($storageKey,'uploads/dev/')!==0)return;
+        znp_storage_delete($storageKey);
+    }catch(Throwable $exception){
+        error_log('Daily Log photo could not be removed from storage: '.$exception->getMessage());
+    }
 }
 
 $hasWeatherJson=znp_daily_column_exists('construction_daily_logs','weather_json');
@@ -207,10 +214,18 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             if($uploads){
                 $uploadedPaths=array_column($uploads,'path');
                 $ins=db()->prepare('INSERT INTO construction_daily_log_photos(daily_log_id,construction_project_id,file_path,original_name,mime_type,file_size,created_at) VALUES(?,?,?,?,?,?,NOW())');
-                foreach($uploads as $f) $ins->execute([$id,$projectId,$f['path'],$f['name'],$f['mime'],$f['size']]);
+                foreach($uploads as $f){
+                    znp_storage_put_file((string)$f['path'],znp_storage_local_path((string)$f['path']),(string)$f['mime']);
+                    $ins->execute([$id,$projectId,$f['path'],$f['name'],$f['mime'],$f['size']]);
+                }
             }
         }
         db()->commit();
+        if(znp_storage_uses_s4()){
+            foreach($uploadedPaths as $uploadedPath){
+                try{znp_storage_remove_local((string)$uploadedPath);}catch(Throwable $exception){error_log('Daily Log local upload cleanup failed: '.$exception->getMessage());}
+            }
+        }
         foreach($removedPhotoPaths as $removedPhotoPath) znp_daily_remove_file($removedPhotoPath);
         try{ dev_activity($projectId,$event,$message,'daily_log',$id); }catch(Throwable $exception){error_log('Daily Log activity write failed: '.$exception->getMessage());}
         header('Location: daily_logs.php?project_id='.$projectId.'&'.$redirectFlag.($warning?'&photo_upgrade=1':''));
@@ -257,9 +272,6 @@ require __DIR__.'/includes/header.php';
 $formSource=$_POST?:($editLog?:[]);
 $isEditing=(bool)$editLog;
 ?>
-<style>
-.daily-log-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}.daily-log-actions form{margin:0}.daily-log-actions .danger{background:#fff;color:#b42318;border:1px solid #f0b4ae}.daily-log-actions .danger:hover{background:#fff1f0}.daily-photo-remove-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:10px;margin-top:10px}.daily-photo-remove{display:block;border:1px solid #dce3ea;border-radius:8px;padding:7px}.daily-photo-remove img{width:100%;height:100px;object-fit:cover;border-radius:6px;display:block;margin-bottom:6px}.daily-photo-remove span{display:flex;gap:6px;align-items:center;font-size:13px}.daily-log-compose,.daily-log-entry{padding:0!important;overflow:hidden}.daily-log-compose>summary,.daily-log-entry>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 20px;cursor:pointer;list-style:none}.daily-log-compose>summary::-webkit-details-marker,.daily-log-entry>summary::-webkit-details-marker{display:none}.daily-log-compose>summary:after,.daily-log-entry>summary:after{content:'+';display:grid;place-items:center;width:30px;height:30px;flex:0 0 auto;border-radius:50%;background:var(--pale);color:var(--blue);font-size:21px;font-weight:700}.daily-log-compose[open]>summary:after,.daily-log-entry[open]>summary:after{content:'−'}.daily-log-compose>form,.daily-log-entry-body{padding:0 20px 20px;border-top:1px solid var(--line)}.daily-log-compose>form{padding-top:20px}.daily-log-summary strong,.daily-log-summary small{display:block}.daily-log-summary small{margin-top:4px;color:var(--muted)}.daily-log-photo-slot{margin-top:16px}.daily-photo-loading{display:flex;align-items:center;gap:10px;padding:16px;color:var(--muted)}.daily-photo-spinner{width:22px;height:22px;border:3px solid #d8e3ec;border-top-color:var(--blue);border-radius:50%;animation:daily-photo-spin .75s linear infinite}.daily-photo-error{padding:14px;border:1px solid #efc3bf;border-radius:8px;background:#fff6f5;color:#8d2921}.daily-photo-error .btn{margin-top:10px}.dev-toast.daily-log-save-toast{left:20px!important;right:auto!important;bottom:20px!important;background:#21824e!important;color:#fff!important;box-shadow:0 12px 30px rgba(20,65,40,.25)}@keyframes daily-photo-spin{to{transform:rotate(360deg)}}.manual-weather{min-height:78px}.workforce-panel{border:1px solid #d8e1e9;border-radius:10px;background:#fff!important;color:#173f68!important;overflow:hidden}.workforce-panel *{box-sizing:border-box}.workforce-panel>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:9px 12px;cursor:pointer;color:#173f68!important;background:#f8fafc;font-weight:700;list-style:none}.workforce-panel>summary::-webkit-details-marker{display:none}.workforce-panel>summary:after{content:'+';font-size:20px;line-height:1;color:#2f6fa7}.workforce-panel[open]>summary:after{content:'−'}.workforce-summary{color:#64788b!important;font-size:12px;font-weight:600;white-space:nowrap}.workforce-panel-body{padding:10px;background:#fff!important;color:#173f68!important}.workforce-search{margin:0 0 9px!important;height:40px!important;color:#173f68!important;background:#fff!important;border:1px solid #cbd7e2!important}.workforce-group+.workforce-group{margin-top:12px;padding-top:12px;border-top:1px solid #e3e9ef}.workforce-group-title{margin:0 0 6px;padding:0 2px;color:#173f68!important;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.workforce-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.workforce-row{border:1px solid #d8e1e9;border-radius:7px;background:#fff!important;color:#173f68!important;overflow:hidden;min-width:0}.workforce-row[hidden]{display:none!important}.workforce-choice{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:9px!important;margin:0!important;padding:6px 9px!important;min-height:38px!important;cursor:pointer;color:#173f68!important;-webkit-text-fill-color:#173f68!important;background:#fff!important;text-align:left!important}.workforce-choice:hover{background:#f2f7fb!important}.workforce-choice:has(input:checked){background:#eef5fb!important;box-shadow:inset 3px 0 0 #2f6fa7}.workforce-choice input[type=checkbox]{appearance:auto!important;-webkit-appearance:checkbox!important;display:block!important;width:18px!important;height:18px!important;min-width:18px!important;margin:0!important;flex:0 0 18px!important;accent-color:#2f6fa7!important}.workforce-choice,.workforce-choice span,.workforce-choice strong,.workforce-choice small{color:#173f68!important;-webkit-text-fill-color:#173f68!important;opacity:1!important;visibility:visible!important}.workforce-choice span{display:block!important;min-width:0!important;line-height:1.15!important;text-align:left!important}.workforce-choice strong{display:block!important;color:#173f68!important;font-size:13px!important;font-weight:700!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workforce-choice small{display:block!important;color:#61778b!important;-webkit-text-fill-color:#61778b!important;font-size:11px!important;font-weight:500!important;margin-top:2px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workforce-empty{padding:10px;color:#64788b!important;font-size:13px}.draft-status{display:block;margin-top:8px;color:#64788b;font-size:12px}.daily-log-reset{background:#fff!important;color:#b42318!important;border:1px solid #e2a8a3!important;padding:8px 12px!important;border-radius:7px!important;font-size:12px!important;font-weight:700!important}.daily-log-reset:hover{background:#fff4f3!important}@media(max-width:620px){.daily-log-compose>summary,.daily-log-entry>summary{padding:14px}.daily-log-compose>form,.daily-log-entry-body{padding-left:14px;padding-right:14px}.workforce-panel>summary{min-height:42px;padding:8px 10px}.workforce-panel-body{padding:8px}.workforce-picker{grid-template-columns:1fr;gap:5px}.workforce-choice{min-height:38px;padding:6px 8px}.workforce-choice strong{font-size:12.5px}.workforce-choice small{font-size:10.5px}}
-</style>
 
 <?php if(isset($_GET['saved'])):?><div class="card notice-success">Daily log saved successfully.</div><?php endif;?>
 <?php if(isset($_GET['updated'])):?><div class="card notice-success">Daily log updated successfully.</div><?php endif;?>
@@ -268,7 +280,7 @@ $isEditing=(bool)$editLog;
 <?php if($warning):?><div class="card notice-warning"><?=e($warning)?></div><?php endif;?>
 <details class="card daily-log-compose" <?=$isEditing?'open':''?>><summary><span class="daily-log-summary"><strong><?=$isEditing?'Edit Daily Log':'Add Daily Log'?></strong><small><?=$isEditing?'Update this entry and its attachments.':'Create a new project field report.'?></small></span></summary><form id="daily-log-form" method="post" enctype="multipart/form-data" class="form-grid" data-heic-upload-form>
 <input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="<?=$isEditing?'update':'create'?>"><?php if($isEditing):?><input type="hidden" name="log_id" value="<?=$editId?>"><?php endif;?>
-<div class="form-full" style="display:flex;justify-content:flex-end;gap:8px;align-items:center"><button type="button" class="daily-log-reset" id="daily-log-reset">Reset Draft</button><?php if($isEditing):?><a class="secondary" href="daily_logs.php?project_id=<?=$projectId?>">Cancel Edit</a><?php endif;?></div>
+<div class="form-full znp-cluster-end"><button type="button" class="daily-log-reset" id="daily-log-reset">Reset Draft</button><?php if($isEditing):?><a class="secondary" href="daily_logs.php?project_id=<?=$projectId?>">Cancel Edit</a><?php endif;?></div>
 <div><label>Log Date</label><input type="date" name="log_date" required value="<?=e($formSource['log_date']??date('Y-m-d'))?>"></div>
 <div class="form-full"><label>Project Team / Trades on Job</label>
 <?php if(!$hasWorkforceTable):?><div class="notice-warning">Daily Log workforce is unavailable because the required database table is missing. Contact the system administrator.</div><?php elseif(!$hasWorkforceSourceKey):?><div class="notice-warning">The database does not support multiple trades from one vendor. Contact the system administrator.</div><?php endif;?>
@@ -302,12 +314,16 @@ $groupOptions=array_filter($workforceOptions,fn($option)=>($option['source_type'
 <div class="form-full"><small class="draft-status" id="daily-draft-status" aria-live="polite"></small></div><div class="form-full"><button class="primary"><?=$isEditing?'Save Changes':'Add Daily Log'?></button></div></form></details>
 
 <div id="daily-log-autosave-toast" class="dev-toast daily-log-save-toast" role="status" aria-live="polite" hidden>Daily Log changes saved</div>
-<div class="grid" style="margin-top:20px"><?php foreach($logs as $l):?><details class="card daily-log-card daily-log-entry" data-daily-log-entry data-log-id="<?=(int)$l['id']?>"><summary><span class="daily-log-summary"><strong><?=e(dev_date($l['log_date']))?></strong><small><?=e((string)$l['workforce_count'])?> trades/team · Logged by <?=e($l['full_name']?:'User')?></small></span></summary><div class="daily-log-entry-body"><?php if(!empty($workforceByLog[(int)$l['id']])):?><details><summary>Team / Trades on Site</summary><ul><?php foreach($workforceByLog[(int)$l['id']] as $wf):?><li><?=e($wf['display_label'])?></li><?php endforeach;?></ul></details><?php endif;?>
-<?php if(trim((string)($l['weather']??''))!==''):?><div class="weather-strip"><span><strong>Weather Conditions</strong><?=nl2br(e((string)$l['weather']))?></span></div><?php endif;?>
-<?php if(trim((string)($l['visitors']??''))!==''):?><p><strong>Visitors / Vendors:</strong> <?=e((string)$l['visitors'])?></p><?php endif;?>
-<h4>Today's Activities on Job</h4><p><?=nl2br(e($l['work_performed']))?></p><?php if($l['delays']):?><details><summary>Delays</summary><p><?=nl2br(e($l['delays']))?></p></details><?php endif;?><?php if($l['safety_incidents']):?><details><summary>Safety Incidents</summary><p><?=nl2br(e($l['safety_incidents']))?></p></details><?php endif;?>
-<?php if($hasPhotoTable):?><div class="daily-log-photo-slot" data-daily-log-photos data-endpoint="daily_log_photos.php?project_id=<?=$projectId?>&daily_log_id=<?=(int)$l['id']?>"><span class="muted">Photos load when this Daily Log is expanded.</span></div><?php endif;?>
-<div class="daily-log-actions"><a class="secondary" href="daily_logs.php?project_id=<?=$projectId?>&edit_id=<?=(int)$l['id']?>#daily-log-form">Edit</a><form method="post" onsubmit="return confirm('Delete this daily log and all attached photos? This cannot be undone.');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="log_id" value="<?=(int)$l['id']?>"><button class="danger" type="submit">Delete</button></form></div>
+<div class="grid znp-mt-5"><?php foreach($logs as $l):?><details class="card daily-log-card daily-log-entry" data-daily-log-entry data-log-id="<?=(int)$l['id']?>"><summary><span class="daily-log-summary"><strong><?=e(dev_date($l['log_date']))?></strong><small><?=e((string)$l['workforce_count'])?> trades/team · Logged by <?=e($l['full_name']?:'User')?></small></span></summary><div class="daily-log-entry-body"><div class="daily-log-sections">
+<section class="daily-log-section"><h3>Trades on Site</h3><?php if(!empty($workforceByLog[(int)$l['id']])):?><div class="daily-log-lines"><?php foreach($workforceByLog[(int)$l['id']] as $wf):?><div><?=e($wf['display_label'])?></div><?php endforeach;?></div><?php else:?><p class="muted">No trades reported.</p><?php endif;?></section>
+<section class="daily-log-section"><h3>Weather</h3><p><?=trim((string)($l['weather']??''))!==''?nl2br(e((string)$l['weather'])):'<span class="muted">No weather reported.</span>'?></p></section>
+<section class="daily-log-section"><h3>Visitors</h3><p><?=trim((string)($l['visitors']??''))!==''?nl2br(e((string)$l['visitors'])):'<span class="muted">No visitors reported.</span>'?></p></section>
+<section class="daily-log-section"><h3>Activities</h3><div class="daily-log-lines"><?php foreach(znp_daily_text_lines((string)$l['work_performed']) as $activity):?><div><?=e($activity)?></div><?php endforeach;?></div></section>
+<section class="daily-log-section"><h3>Delays</h3><p><?=trim((string)($l['delays']??''))!==''?nl2br(e((string)$l['delays'])):'<span class="muted">No delays reported.</span>'?></p></section>
+<section class="daily-log-section"><h3>Incidents</h3><p><?=trim((string)($l['safety_incidents']??''))!==''?nl2br(e((string)$l['safety_incidents'])):'<span class="muted">No incidents reported.</span>'?></p></section>
+<section class="daily-log-section daily-log-section-photos"><h3>Photos</h3><?php if($hasPhotoTable):?><div class="daily-log-photo-slot" data-daily-log-photos data-endpoint="daily_log_photos.php?project_id=<?=$projectId?>&daily_log_id=<?=(int)$l['id']?>"><span class="muted">Photos load when this Daily Log is expanded.</span></div><?php else:?><p class="muted">Photos are unavailable.</p><?php endif;?></section>
+</div>
+<div class="daily-log-actions"><a class="btn btn-secondary" href="daily_logs.php?project_id=<?=$projectId?>&edit_id=<?=(int)$l['id']?>#daily-log-form">Edit</a><form method="post" onsubmit="return confirm('Delete this daily log and all attached photos? This cannot be undone.');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="log_id" value="<?=(int)$l['id']?>"><button class="danger" type="submit">Delete</button></form></div>
 </div></details><?php endforeach;?></div>
 <script>
 (function(){
@@ -442,17 +458,40 @@ $groupOptions=array_filter($workforceOptions,fn($option)=>($option['source_type'
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js" defer></script>
-<script src="assets/heic-upload.js?v=1.0.1" defer></script>
-<div class="dev-modal" id="daily-photo-modal" hidden><div class="dev-modal-panel" style="width:min(1100px,96vw);text-align:center"><button type="button" class="modal-close" data-close-modal aria-label="Close">×</button><img id="daily-photo-modal-image" src="" alt="" style="display:block;max-width:100%;max-height:82vh;width:auto;height:auto;margin:auto;border-radius:8px"><p id="daily-photo-modal-caption" class="muted"></p></div></div>
+<script src="assets/heic-upload.js?v=1.0.2" defer></script>
+<div class="dev-modal" id="daily-photo-modal" hidden><div class="dev-modal-panel znp-modal-panel-wide daily-photo-gallery-modal"><button type="button" class="modal-close" data-close-modal aria-label="Close">×</button><div class="daily-photo-gallery-stage"><button class="daily-photo-gallery-arrow daily-photo-gallery-previous" type="button" aria-label="Previous image">‹</button><img id="daily-photo-modal-image" class="znp-modal-image" src="" alt=""><button class="daily-photo-gallery-arrow daily-photo-gallery-next" type="button" aria-label="Next image">›</button></div><p id="daily-photo-modal-caption" class="muted"></p><p id="daily-photo-modal-counter" class="daily-photo-gallery-counter" aria-live="polite"></p></div></div>
 <script>
 (function(){
- const modal=document.getElementById('daily-photo-modal'),image=document.getElementById('daily-photo-modal-image'),caption=document.getElementById('daily-photo-modal-caption');
+ const modal=document.getElementById('daily-photo-modal'),image=document.getElementById('daily-photo-modal-image'),caption=document.getElementById('daily-photo-modal-caption'),counter=document.getElementById('daily-photo-modal-counter'),previous=modal.querySelector('.daily-photo-gallery-previous'),next=modal.querySelector('.daily-photo-gallery-next');
+ let gallery=[],current=0;
+ function show(index){
+   if(!gallery.length)return;
+   current=(index+gallery.length)%gallery.length;
+   const link=gallery[current];
+   image.src=link.href;image.alt=link.title||'Daily Log photo';caption.textContent=link.title||'';counter.textContent='Image '+(current+1)+' of '+gallery.length;
+   modal.classList.toggle('is-single-image',gallery.length<2);
+ }
+ function closeGallery(hideModal){
+   image.src='';gallery=[];current=0;counter.textContent='';
+   if(hideModal){modal.hidden=true;modal.classList.remove('is-open');document.body.classList.remove('modal-open');}
+ }
  document.addEventListener('click',function(event){
    const link=event.target.closest('[data-daily-photo-viewer]');if(!link)return;
-   event.preventDefault();image.src=link.href;image.alt=link.title||'Daily Log photo';caption.textContent=link.title||'';modal.hidden=false;modal.classList.add('is-open');document.body.classList.add('modal-open');
+   event.preventDefault();
+   const entry=link.closest('[data-daily-log-entry]');
+   gallery=Array.from((entry||document).querySelectorAll('[data-daily-photo-viewer]'));
+   current=Math.max(0,gallery.indexOf(link));show(current);modal.hidden=false;modal.classList.add('is-open');document.body.classList.add('modal-open');
  });
- modal.addEventListener('click',function(event){if(event.target===modal){image.src='';}});
- modal.querySelector('[data-close-modal]').addEventListener('click',function(){image.src='';});
+ previous.addEventListener('click',function(){show(current-1);});
+ next.addEventListener('click',function(){show(current+1);});
+ modal.addEventListener('click',function(event){if(event.target===modal)closeGallery(false);});
+ modal.querySelector('[data-close-modal]').addEventListener('click',function(){closeGallery(false);});
+ document.addEventListener('keydown',function(event){
+   if(modal.hidden)return;
+   if(event.key==='ArrowLeft'){event.preventDefault();show(current-1);}
+   if(event.key==='ArrowRight'){event.preventDefault();show(current+1);}
+   if(event.key==='Escape')closeGallery(true);
+ });
 })();
 </script>
 <?php require __DIR__.'/includes/footer.php';?>

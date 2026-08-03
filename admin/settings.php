@@ -1,8 +1,12 @@
 <?php
 require_once __DIR__.'/../includes/auth.php';
+require_once __DIR__.'/../includes/storage.php';
 require_admin();
+foreach(['smtp_password','mega_s4_access_key','mega_s4_secret_key'] as $secretSetting){
+ try{migrate_secret_setting($secretSetting);}catch(Throwable $migrationError){error_log('Secret setting migration failed for '.$secretSetting.': '.$migrationError->getMessage());}
+}
 $message='';$error='';$activeTab=$_GET['tab']??'general';
-$allowedTabs=['general','pages','seo','email','newsletter','branding','security','system'];if(!in_array($activeTab,$allowedTabs,true))$activeTab='general';
+$allowedTabs=['general','pages','seo','email','storage','newsletter','branding','security','system'];if(!in_array($activeTab,$allowedTabs,true))$activeTab='general';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  if(!csrf_check($_POST['csrf_token']??'')){$error='Your session expired. Please try again.';}
  else{
@@ -11,18 +15,43 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $recipient=trim((string)($_POST['test_email']??''));
    if(!filter_var($recipient,FILTER_VALIDATE_EMAIL))$error='Enter a valid test email address.';
    else{$result=app_send_mail_detailed($recipient,'ZNP Development SMTP Test','<p>Your ZNP Development SMTP settings are working.</p><p>Sent '.e(date('F j, Y g:i A T')).'.</p>');if($result['ok'])$message='Test email accepted by the SMTP server.';else$error='Test email failed: '.$result['error'];}
+  }elseif($action==='test_storage'){
+   $activeTab='storage';
+   $result=znp_mega_s4_test_connection();
+   if($result['ok'])$message=$result['message'];else$error=$result['message'];
   }else{
+   $messageInfoEmail=trim((string)($_POST['message_info_email_address']??''));
+   if(array_key_exists('message_info_email_address',$_POST)&&$messageInfoEmail!==''&&!filter_var($messageInfoEmail,FILTER_VALIDATE_EMAIL)){
+    $error='Enter a valid Message Info Email address.';
+   }
+   if($activeTab==='storage'){
+    $storageDriver=(string)($_POST['storage_driver']??'local');
+    $s4Endpoint=trim((string)($_POST['mega_s4_endpoint']??''));
+    $s4Region=trim((string)($_POST['mega_s4_region']??''));
+    $s4Bucket=trim((string)($_POST['mega_s4_bucket']??''));
+    $hasAccessKey=trim((string)($_POST['mega_s4_access_key']??''))!==''||decrypt_setting(setting('mega_s4_access_key'))!=='';
+    $hasSecretKey=trim((string)($_POST['mega_s4_secret_key']??''))!==''||decrypt_setting(setting('mega_s4_secret_key'))!=='';
+    if(!in_array($storageDriver,['local','mega_s4'],true))$error='Choose a valid storage driver.';
+    elseif($storageDriver==='mega_s4'&&(!filter_var($s4Endpoint,FILTER_VALIDATE_URL)||strtolower((string)parse_url($s4Endpoint,PHP_URL_SCHEME))!=='https'))$error='Enter a valid HTTPS MEGA S4 endpoint.';
+    elseif($storageDriver==='mega_s4'&&!preg_match('/^[a-z0-9-]+$/',$s4Region))$error='Enter a valid MEGA S4 region.';
+    elseif($storageDriver==='mega_s4'&&!preg_match('/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/',$s4Bucket))$error='Enter a valid MEGA S4 bucket name.';
+    elseif($storageDriver==='mega_s4'&&(!$hasAccessKey||!$hasSecretKey))$error='Enter both MEGA S4 access and secret keys.';
+   }
    $fields=[
     'company_name','website_url','admin_url','app_timezone','application_version',
     'page_projects_title','page_projects_subtitle','page_team_title','page_team_subtitle','page_invest_title','page_invest_subtitle','page_contact_title','page_contact_subtitle',
     'seo_default_title','seo_default_description','seo_social_title','seo_social_description','seo_social_image','google_analytics_id','google_tag_manager_id',
     'seo_home_title','seo_home_description','seo_home_og_title','seo_home_og_description','seo_projects_title','seo_projects_description','seo_projects_og_title','seo_projects_og_description','seo_team_title','seo_team_description','seo_team_og_title','seo_team_og_description','seo_invest_title','seo_invest_description','seo_invest_og_title','seo_invest_og_description','seo_contact_title','seo_contact_description','seo_contact_og_title','seo_contact_og_description',
-    'smtp_host','smtp_port','smtp_encryption','smtp_username','mail_from_name','mail_from_email','mail_reply_to','newsletter_enabled','newsletter_sender_name','newsletter_reply_to','newsletter_physical_address','newsletter_footer_text',
+    'smtp_host','smtp_port','smtp_encryption','smtp_username','mail_from_name','mail_from_email','mail_reply_to','message_info_email_address','storage_driver','mega_s4_endpoint','mega_s4_region','mega_s4_bucket','newsletter_enabled','newsletter_sender_name','newsletter_reply_to','newsletter_physical_address','newsletter_footer_text',
     'primary_color','secondary_color','session_timeout','max_login_attempts','password_reset_enabled'
    ];
-   foreach($fields as $key){if(array_key_exists($key,$_POST))setting_save($key,trim((string)$_POST[$key]));}
-   if(isset($_POST['smtp_password'])&&trim((string)$_POST['smtp_password'])!=='')setting_save('smtp_password',encrypt_setting(trim((string)$_POST['smtp_password'])),'secret');
-   $message='Settings saved successfully.';
+   if($error===''){
+    foreach($fields as $key){if(array_key_exists($key,$_POST))setting_save($key,trim((string)$_POST[$key]));}
+    if(isset($_POST['smtp_password'])&&trim((string)$_POST['smtp_password'])!=='')setting_save('smtp_password',encrypt_setting(trim((string)$_POST['smtp_password'])),'secret');
+    if(isset($_POST['mega_s4_access_key'])&&trim((string)$_POST['mega_s4_access_key'])!=='')setting_save('mega_s4_access_key',encrypt_setting(trim((string)$_POST['mega_s4_access_key'])),'secret');
+    if(isset($_POST['mega_s4_secret_key'])&&trim((string)$_POST['mega_s4_secret_key'])!=='')setting_save('mega_s4_secret_key',encrypt_setting(trim((string)$_POST['mega_s4_secret_key'])),'secret');
+    $message='Settings saved successfully.';
+   }
   }
  }
 }
@@ -34,7 +63,7 @@ $diagnostics=znp_system_diagnostics();
 <?php if($error):?><div class="status error"><?=e($error)?></div><?php endif;?>
 <div class="settings-layout">
  <nav class="settings-tabs" aria-label="Settings sections">
-  <?php foreach(['general'=>'General','pages'=>'Page Titles','seo'=>'SEO','email'=>'Email','newsletter'=>'Newsletter','branding'=>'Branding','security'=>'Security','system'=>'System'] as $key=>$label):?>
+  <?php foreach(['general'=>'General','pages'=>'Page Titles','seo'=>'SEO','email'=>'Email','storage'=>'Storage','newsletter'=>'Newsletter','branding'=>'Branding','security'=>'Security','system'=>'System'] as $key=>$label):?>
    <a class="<?=$activeTab===$key?'active':''?>" href="settings.php?tab=<?=$key?>"><?=e($label)?></a>
   <?php endforeach;?>
  </nav>
@@ -90,9 +119,26 @@ $diagnostics=znp_system_diagnostics();
     <label>Sender Name<input name="mail_from_name" value="<?=e(setting('mail_from_name','ZNP Development'))?>"></label>
     <label>Sender Email<input type="email" name="mail_from_email" value="<?=e(setting('mail_from_email'))?>"></label>
     <label>Reply-To Email<input type="email" name="mail_reply_to" value="<?=e(setting('mail_reply_to',setting('mail_from_email')))?>"></label>
+    <label>Message Info Email address<input type="email" name="message_info_email_address" value="<?=e(setting('message_info_email_address'))?>" placeholder="admin@example.com"><small class="admin-help-text">New public contact inquiries will be sent to this address. Leave blank to disable notifications.</small></label>
    </div><button class="primary">Save Email Settings</button>
   </form>
   <form method="post" class="settings-card admin-form settings-test-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="tab" value="email"><input type="hidden" name="action" value="test_email"><h2>Send Test Email</h2><label>Recipient Email<input type="email" required name="test_email" value="<?=e((string)($user['email']??''))?>"></label><button class="secondary">Send Test Email</button></form>
+ <?php elseif($activeTab==='storage'):?>
+  <?php $s4AccessKeySaved=decrypt_setting(setting('mega_s4_access_key'))!=='';$s4SecretKeySaved=decrypt_setting(setting('mega_s4_secret_key'))!=='';?>
+  <form method="post" class="settings-card admin-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="tab" value="storage">
+   <h2>Upload Storage</h2><p class="admin-help-text">Configure MEGA S4 credentials for S3-compatible upload storage. Saved keys are encrypted and are never displayed again.</p>
+   <div class="settings-grid">
+    <label>Storage Driver<select name="storage_driver"><option value="local" <?=setting('storage_driver','local')==='local'?'selected':''?>>Local Server</option><option value="mega_s4" <?=setting('storage_driver')==='mega_s4'?'selected':''?>>MEGA S4</option></select></label>
+    <label>MEGA S4 Endpoint<input type="url" name="mega_s4_endpoint" placeholder="https://s3.eu-central-1.s4.mega.io" value="<?=e(setting('mega_s4_endpoint'))?>"><small class="admin-help-text">Use the exact endpoint shown in MEGA Object Storage settings.</small></label>
+    <label>Region<input name="mega_s4_region" placeholder="eu-central-1" pattern="[a-z0-9-]+" value="<?=e(setting('mega_s4_region'))?>"></label>
+    <label>Bucket Name<input name="mega_s4_bucket" value="<?=e(setting('mega_s4_bucket'))?>"></label>
+    <label>Access Key<input type="password" name="mega_s4_access_key" autocomplete="new-password" placeholder="<?=$s4AccessKeySaved?'Saved — leave blank to keep current key':'Enter access key'?>"></label>
+    <label>Secret Key<input type="password" name="mega_s4_secret_key" autocomplete="new-password" placeholder="<?=$s4SecretKeySaved?'Saved — leave blank to keep current key':'Enter secret key'?>"></label>
+   </div>
+   <p class="admin-help-text">Leaving a key field blank preserves the currently saved key. Choose Local Server before changing or removing an active S4 configuration.</p>
+   <button class="primary">Save Storage Settings</button>
+  </form>
+  <form method="post" class="settings-card admin-form settings-test-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="tab" value="storage"><input type="hidden" name="action" value="test_storage"><h2>Test MEGA S4 Connection</h2><p class="admin-help-text">Performs a read-only bucket access check using the saved endpoint and credentials.</p><button class="secondary">Test Connection</button></form>
  <?php elseif($activeTab==='newsletter'):?>
   <form method="post" class="settings-card admin-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="tab" value="newsletter"><h2>Newsletter</h2><p class="admin-help-text">Configure public signup language, sender information, and the compliance address included in every campaign.</p><div class="settings-grid"><label>Newsletter Status<select name="newsletter_enabled"><option value="1" <?=setting('newsletter_enabled','1')==='1'?'selected':''?>>Enabled</option><option value="0" <?=setting('newsletter_enabled')==='0'?'selected':''?>>Disabled</option></select></label><label>Sender Name<input name="newsletter_sender_name" value="<?=e(setting('newsletter_sender_name','ZNP Development'))?>"></label><label>Reply-To Email<input type="email" name="newsletter_reply_to" value="<?=e(setting('newsletter_reply_to',setting('mail_reply_to')))?>"></label><label>Physical Mailing Address<input name="newsletter_physical_address" value="<?=e(setting('newsletter_physical_address','Dallas, Texas'))?>"></label></div><label>Footer Signup Text<textarea name="newsletter_footer_text"><?=e(setting('newsletter_footer_text','Receive project updates, company news, and investment opportunity announcements.'))?></textarea></label><button class="primary">Save Newsletter Settings</button></form>
  <?php elseif($activeTab==='branding'):?>

@@ -131,25 +131,3 @@ if (!function_exists('znp_render_alert')) {
         echo '<span>' . znp_component_escape($message) . '</span></div>';
     }
 }
-
-if (!function_exists('znp_workspace_component_styles')) {
-    function znp_workspace_component_styles(): void
-    {
-        static $rendered = false;
-        if ($rendered) {
-            return;
-        }
-        $rendered = true;
-        echo <<<'HTML'
-<style>
-.znp-page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:0 0 24px}.znp-page-heading h1{margin:0}.znp-page-heading p{margin:7px 0 0;color:#667487}.znp-page-heading-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.znp-ui-card{background:#fff;border:1px solid rgba(22,58,112,.12);border-radius:14px;overflow:hidden}.znp-ui-card-header{padding:20px 22px 0}.znp-ui-card-header h2{margin:0}.znp-ui-card-header p{margin:7px 0 0;color:#667487}.znp-ui-card-body{padding:20px 22px}
-.znp-ui-badge{display:inline-flex;align-items:center;min-height:25px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.1}.znp-ui-badge-neutral{background:#eef2f7;color:#44546a}.znp-ui-badge-success{background:#e7f7ed;color:#176b39}.znp-ui-badge-warning{background:#fff4d6;color:#835d00}.znp-ui-badge-danger{background:#fde9e8;color:#a12622}.znp-ui-badge-info{background:#e8f1ff;color:#174f9b}
-.znp-ui-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 15px;border:1px solid transparent;border-radius:999px;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}.znp-ui-button-primary{background:#163a70;color:#fff}.znp-ui-button-secondary{background:#fff;color:#163a70;border-color:rgba(22,58,112,.24)}.znp-ui-button-danger{background:#a12622;color:#fff}.znp-ui-button-text{background:transparent;color:#163a70;padding-left:5px;padding-right:5px}
-.znp-ui-empty-state{text-align:center;padding:34px 22px;border:1px dashed rgba(22,58,112,.24);border-radius:14px;background:#fafbfd}.znp-ui-empty-state h3{margin:0}.znp-ui-empty-state p{max-width:560px;margin:8px auto 0;color:#667487}.znp-ui-empty-action{margin-top:17px}
-.znp-ui-alert{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-radius:10px;margin:0 0 16px}.znp-ui-alert-success{background:#e7f7ed;color:#176b39}.znp-ui-alert-warning{background:#fff4d6;color:#835d00}.znp-ui-alert-danger{background:#fde9e8;color:#a12622}.znp-ui-alert-info{background:#e8f1ff;color:#174f9b}
-@media(max-width:700px){.znp-page-heading{align-items:flex-start;flex-direction:column}.znp-page-heading-actions{width:100%}.znp-ui-button{max-width:100%}}
-</style>
-HTML;
-    }
-}

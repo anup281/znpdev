@@ -3,8 +3,6 @@ require_once __DIR__ . '/../includes/workspace_footer.php';
 ?>
 </main>
 <?php
-znp_workspace_component_styles();
-znp_workspace_footer_styles();
 znp_render_workspace_footer(
     'Admin Portal',
     znp_application_version_label(),

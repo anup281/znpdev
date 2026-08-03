@@ -1,0 +1,116 @@
+/* ZNP SHARED PORTAL DASHBOARD START */
+.admin-portal-home{
+  display:grid;
+  gap:20px;
+  min-height:0;
+  align-content:start;
+  padding:10px 0 32px;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+.admin-portal-hero{
+  padding:8px 0 10px;
+  border-bottom:1px solid #d9e1ea;
+  text-align:center;
+}
+.admin-portal-hero h1,
+.znp-dashboard-greeting h1{
+  margin:0;
+  color:#0b1f3a;
+  font-family:inherit;
+  font-size:clamp(25px,3vw,34px);
+  font-weight:800;
+  letter-spacing:-.035em;
+  line-height:1.05;
+}
+.admin-portal-time{
+  margin-top:3px;
+  color:#173d68;
+  font-family:inherit;
+  font-size:clamp(19px,2.4vw,25px);
+  font-variant-numeric:tabular-nums;
+  font-weight:800;
+  letter-spacing:.02em;
+  line-height:1.15;
+}
+.admin-portal-date{
+  margin-top:0;
+  color:#718096;
+  font-family:inherit;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.2;
+}
+.admin-portal-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+.admin-portal-actions-three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.admin-portal-title-only .admin-portal-button{justify-content:center}
+.admin-portal-title-only .admin-portal-button i{margin-bottom:0}
+.admin-portal-title-only .admin-portal-button span{margin-top:12px}
+.admin-portal-button{
+  display:flex;
+  min-height:132px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  padding:18px;
+  border:1px solid #d9e1ea;
+  border-radius:13px;
+  background:#fff;
+  color:#0b1f3a;
+  box-shadow:0 12px 32px rgba(11,31,58,.06);
+  font-family:inherit;
+  text-decoration:none;
+  text-align:center;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.admin-portal-button:hover,
+.admin-portal-button:focus-visible{
+  transform:translateY(-4px);
+  border-color:#7893ad;
+  box-shadow:0 20px 42px rgba(11,31,58,.12);
+}
+.admin-portal-button i{
+  display:grid;
+  width:38px;
+  height:38px;
+  margin-bottom:auto;
+  place-items:center;
+  border-radius:10px;
+  background:#0b1f3a;
+  color:#fff;
+  font-size:17px;
+}
+.admin-portal-button span{
+  display:block;
+  margin-top:14px;
+  font-size:17px;
+  font-weight:800;
+  line-height:1.15;
+}
+.admin-portal-button small{
+  display:block;
+  margin-top:4px;
+  color:#718096;
+  font-size:12px;
+  line-height:1.3;
+}
+.admin-portal-button-logout i{background:#7f2f2f}
+.admin-portal-button-logout:hover,
+.admin-portal-button-logout:focus-visible{border-color:#b88a8a}
+@media(max-width:1050px){
+  .admin-portal-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+  .admin-portal-home{gap:16px;padding:0 0 22px}
+  .admin-portal-hero{padding:6px 0 9px}
+  .admin-portal-hero h1,.znp-dashboard-greeting h1{font-size:25px}
+  .admin-portal-actions{grid-template-columns:1fr}
+  .admin-portal-button{min-height:112px;padding:15px}
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-portal-button{transition:none}
+}
+/* ZNP SHARED PORTAL DASHBOARD END */

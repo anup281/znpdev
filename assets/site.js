@@ -25,11 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const interval = Math.max(2000, Number(slider?.dataset.slideInterval || 4000));
     const activate = index => {
       const next = homeSlides[index];
-      const lazyBackground = next.dataset.lazyBg;
-      if (lazyBackground) {
-        next.style.backgroundImage = `url('${lazyBackground.replace(/'/g, "\'")}')`;
-        delete next.dataset.lazyBg;
-      }
       homeSlides[current].classList.remove('active');
       current = index;
       next.classList.add('active');
@@ -72,6 +67,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.portfolio-card-button').forEach(button=>{button.addEventListener('click',function(){const project=button.closest('.portfolio-project');const section=project.closest('.portfolio-section');const wasOpen=project.classList.contains('open');section.querySelectorAll('.portfolio-project.open').forEach(p=>{p.classList.remove('open');const b=p.querySelector('.portfolio-card-button');b.setAttribute('aria-expanded','false');b.querySelector('.portfolio-open-label').textContent='View Details →'});if(!wasOpen){project.classList.add('open');button.setAttribute('aria-expanded','true');button.querySelector('.portfolio-open-label').textContent='Hide Details ↑';setTimeout(()=>project.scrollIntoView({behavior:'smooth',block:'center'}),150)}})})});
-
 
 

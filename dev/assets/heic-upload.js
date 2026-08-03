@@ -16,7 +16,7 @@
     var node = form.querySelector('[data-heic-status]');
     if (!node) return;
     node.textContent = message || '';
-    node.style.color = isError ? '#b44747' : '';
+    node.classList.toggle('is-error', Boolean(isError));
   }
 
   async function convertFile(file) {

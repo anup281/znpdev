@@ -97,6 +97,7 @@ $action=(string)($_POST['action']??'list');
 if($projectId<1)investor_json(['ok'=>false,'error'=>'Invalid investment project.'],422);
 if(!can_access_investment($projectId))investor_json(['ok'=>false,'error'=>'You do not have access to this investment.'],403);
 if(investments_only_role()&&$action!=='list')investor_json(['ok'=>false,'error'=>'This account has read-only investor access.'],403);
+$archiveCheck=db()->prepare("SELECT 1 FROM investment_opportunities WHERE id=? AND (status='archived' OR (status='' AND is_visible=0 AND accepting_inquiries=0))");$archiveCheck->execute([$projectId]);$archivedInvestment=(bool)$archiveCheck->fetchColumn();if($archivedInvestment&&$action!=='list')investor_json(['ok'=>false,'error'=>'Archived investments are view only.'],403);
 
 try{
     $pdo=db();
@@ -104,7 +105,7 @@ try{
     $project=$pdo->prepare('SELECT id FROM investment_opportunities WHERE id=?');
     $project->execute([$projectId]);
     if(!$project->fetchColumn())throw new RuntimeException('Investment project not found.');
-    if(!investments_only_role()){
+    if(!investments_only_role()&&!$archivedInvestment){
         $initialize=$pdo->prepare('INSERT IGNORE INTO investment_investor_structures (investment_opportunity_id,lp_total_units,updated_by_admin_id) VALUES (?,2000000.00,?)');
         $initialize->execute([$projectId,admin_user()['id']??null]);
     }

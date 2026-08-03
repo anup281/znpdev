@@ -5,7 +5,7 @@ function znp_workspace_navigation_config(): array
 {
     return [
         'admin'=>['label'=>'Admin Portal','href'=>'/admin/','icon'=>'fa-solid fa-shield-halved','permission'=>'admin'],
-        'construction'=>['label'=>'Construction Portal','href'=>'/dev/','icon'=>'fa-solid fa-hammer','permission'=>'staff'],
+        'construction'=>['label'=>'Construction Portal','href'=>'/dev/','icon'=>'fa-solid fa-hammer','permission'=>'construction'],
         'management'=>['label'=>'Management Portal','href'=>'/manage/','icon'=>'fa-solid fa-briefcase','permission'=>'management'],
         'public'=>['label'=>'Public Website','href'=>'/','icon'=>'fa-solid fa-house','permission'=>'staff'],
         'logout'=>['label'=>'Logout','href'=>'/logout.php','icon'=>'fa-solid fa-right-from-bracket','permission'=>'staff','class'=>'znp-logout-icon'],
@@ -17,7 +17,8 @@ function znp_workspace_navigation_allowed(string $permission): bool
     $staff=admin_user();
     if(!$staff)return false;
     if($permission==='admin')return admin_portal_role($staff);
-    if($permission==='management')return in_array(normalized_role((string)($staff['role']??'')),['super admin','super administrator'],true);
+    if($permission==='management')return management_portal_role($staff);
+    if($permission==='construction')return !management_user_role($staff)&&!investments_only_role($staff)&&!partner_role($staff)&&!legacy_admin_role($staff);
     return $permission==='staff';
 }
 

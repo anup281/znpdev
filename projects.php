@@ -193,12 +193,7 @@ require __DIR__ . '/includes/header.php';
 
               <div
                 class="project-card-image project-image-<?= e($category) ?> <?= $imagePath ? 'has-project-photo' : 'project-image-placeholder' ?>"
-                <?php if ($imagePath): ?>
-                  style="background-image:url('<?= e($imagePath) ?>')"
-                  role="img"
-                  aria-label="<?= e($project['project_name']) ?>"
-                <?php endif; ?>
-              ></div>
+              ><?php if ($imagePath): ?><img class="znp-cover-image" src="<?= e($imagePath) ?>" alt="<?= e($project['project_name']) ?>" loading="lazy"><?php endif; ?></div>
 
               <div class="<?= $category === 'residential'
                   ? 'residential-gallery-copy'

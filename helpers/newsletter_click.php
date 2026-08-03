@@ -1,0 +1,3 @@
+<?php
+require __DIR__.'/../includes/db.php';require __DIR__.'/../includes/functions.php';$id=(int)($_GET['d']??0);$encoded=(string)($_GET['u']??'');$url=base64_decode(rawurldecode($encoded),true);
+if($id>0&&is_string($url)&&preg_match('#^https?://#i',$url)){$pdo=db();$pdo->prepare('UPDATE newsletter_deliveries SET clicked_at=COALESCE(clicked_at,NOW()) WHERE id=?')->execute([$id]);$pdo->prepare('INSERT INTO newsletter_clicks(delivery_id,target_url,ip_address,user_agent) VALUES(?,?,?,?)')->execute([$id,$url,$_SERVER['REMOTE_ADDR']??null,substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,500)]);header('Location: '.$url,true,302);exit;}header('Location: '.app_url('/'));

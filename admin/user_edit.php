@@ -4,7 +4,7 @@ require_admin();
 
 $current = admin_user();
 
-if (($current['role'] ?? '') !== 'super_admin') {
+if (!super_admin_role($current)) {
     http_response_code(403);
     exit('Only a super administrator may manage users.');
 }
@@ -12,22 +12,23 @@ if (($current['role'] ?? '') !== 'super_admin') {
 $id = (int) ($_GET['id'] ?? 0);
 $error = '';
 $investmentAccessReady=investment_user_access_ready();
-$managedRoleCondition="LOWER(REPLACE(role,'_',' ')) IN ('super admin','super administrator','admin','administrator','investments only','investment only','investment','investor')";
+$managedRoleCondition="LOWER(REPLACE(role,'_',' ')) IN ('super admin','super administrator','investments only','investment only','investment','investor','partner')";
 if($investmentAccessReady)$managedRoleCondition.=" OR (COALESCE(role,'')='' AND EXISTS (SELECT 1 FROM investment_user_access iua WHERE iua.admin_user_id=admin_users.id))";
 $investments=db()->query('SELECT id,project_name,status FROM investment_opportunities ORDER BY project_name')->fetchAll();
 $selectedInvestmentIds=[];
+$partnerAccessReady=partner_access_ready();
+$selectedPartnerPermissions=[];
 
 $account = [
     'full_name' => '',
-    'username' => '',
     'email' => '',
-    'role' => 'admin',
+    'role' => 'partner',
     'is_active' => 1,
 ];
 
 if ($id > 0) {
     $statement = db()->prepare(
-        "SELECT id,full_name,username,email,role,is_active FROM admin_users WHERE id = ? AND ($managedRoleCondition)"
+        "SELECT id,full_name,email,role,is_active FROM admin_users WHERE id = ? AND ($managedRoleCondition)"
     );
     $statement->execute([$id]);
     $foundAccount = $statement->fetch();
@@ -42,6 +43,11 @@ if ($id > 0) {
         $accessStatement->execute([$id]);
         $selectedInvestmentIds=array_map('intval',$accessStatement->fetchAll(PDO::FETCH_COLUMN));
     }
+    if($partnerAccessReady&&partner_role($account)){
+        $accessStatement=db()->prepare('SELECT permission_key FROM admin_partner_permissions WHERE admin_user_id=?');
+        $accessStatement->execute([$id]);
+        $selectedPartnerPermissions=array_map('strval',$accessStatement->fetchAll(PDO::FETCH_COLUMN));
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -49,20 +55,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Your session expired. Refresh the page and try again.';
     } else {
         $name = trim($_POST['full_name'] ?? '');
-        $username = strtolower(trim($_POST['username'] ?? ''));
         $email = strtolower(trim($_POST['email'] ?? ''));
-        $role = $_POST['role'] ?? 'admin';
+        $role = $_POST['role'] ?? 'partner';
         $isActive = isset($_POST['is_active']) ? 1 : 0;
         $password = (string)($_POST['password'] ?? '');
         $confirmPassword = (string)($_POST['password_confirmation'] ?? '');
         $selectedInvestmentIds=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['investment_ids']??[])),static fn($value)=>$value>0)));
+        $selectedPartnerPermissions=array_values(array_intersect(array_keys(partner_permission_definitions()),array_map('strval',(array)($_POST['partner_permissions']??[]))));
 
-        if ($name === '' || !preg_match('/^[a-z0-9._]{3,40}$/', $username) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Enter a valid name, username, and email address. Usernames may use letters, numbers, periods, and underscores.';
-        } elseif (!in_array($role, ['super_admin','admin','investments_only'], true)) {
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Enter a valid name and email address.';
+        } elseif (!in_array($role, ['super_admin','investments_only','partner'], true)) {
             $error = 'Select a valid role.';
         } elseif ($role==='investments_only'&&!$investmentAccessReady) {
-            $error = 'Install the Investment User Access upgrade before creating an Investments Only account.';
+            $error = 'Install the Investment User Access upgrade before creating an Investor account.';
+        } elseif ($role==='partner'&&!$partnerAccessReady) {
+            $error = 'Install the Partner Access upgrade before creating a Partner account.';
         } elseif ($id === (int)($current['id'] ?? 0) && !$isActive) {
             $error = 'You cannot disable the account currently signed in.';
         } elseif (($id === 0 || $password !== '') && strlen($password) < 12) {
@@ -73,12 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$error) {
             $duplicate = db()->prepare(
-                'SELECT id FROM admin_users WHERE (email = ? OR LOWER(username) = ?) AND id <> ? LIMIT 1'
+                'SELECT id FROM admin_users WHERE email = ? AND id <> ? LIMIT 1'
             );
-            $duplicate->execute([$email, $username, $id]);
+            $duplicate->execute([$email, $id]);
 
             if ($duplicate->fetch()) {
-                $error = 'That email address or username is already assigned to another user.';
+                $error = 'That email address is already assigned to another user.';
             }
         }
 
@@ -90,13 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($password !== '') {
                     $statement = db()->prepare(
                         'UPDATE admin_users
-                         SET full_name=?, username=?, email=?, role=?, is_active=?, password_hash=?,
+                         SET full_name=?, email=?, role=?, is_active=?, password_hash=?,
                              failed_login_attempts=0, locked_until=NULL
                          WHERE id=?'
                     );
                     $statement->execute([
                         $name,
-                        $username,
                         $email,
                         $role,
                         $isActive,
@@ -106,20 +113,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $statement = db()->prepare(
                         'UPDATE admin_users
-                         SET full_name=?, username=?, email=?, role=?, is_active=?
+                         SET full_name=?, email=?, role=?, is_active=?
                          WHERE id=?'
                     );
-                    $statement->execute([$name, $username, $email, $role, $isActive, $id]);
+                    $statement->execute([$name, $email, $role, $isActive, $id]);
                 }
             } else {
                 $statement = db()->prepare(
                     'INSERT INTO admin_users
-                     (full_name,username,email,role,is_active,password_hash)
-                     VALUES (?,?,?,?,?,?)'
+                     (full_name,email,role,is_active,password_hash)
+                     VALUES (?,?,?,?,?)'
                 );
                 $statement->execute([
                     $name,
-                    $username,
                     $email,
                     $role,
                     $isActive,
@@ -140,6 +146,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach($validIds as $investmentId)$assign->execute([$savedId,$investmentId,(int)($current['id']??0)]);
                 }
             }
+            if($partnerAccessReady){
+                db()->prepare('DELETE FROM admin_partner_permissions WHERE admin_user_id=?')->execute([$savedId]);
+                if($role==='partner'&&$selectedPartnerPermissions){
+                    $assign=db()->prepare('INSERT INTO admin_partner_permissions(admin_user_id,permission_key,assigned_by_admin_user_id) VALUES(?,?,?)');
+                    foreach($selectedPartnerPermissions as $permission)$assign->execute([$savedId,$permission,(int)($current['id']??0)]);
+                }
+            }
             db()->commit();
             header('Location: users.php?saved=1');
             exit;
@@ -152,7 +165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $account = [
             'full_name' => $name,
-            'username' => $username,
             'email' => $email,
             'role' => $role,
             'is_active' => $isActive,
@@ -181,10 +193,6 @@ require __DIR__ . '/_header.php';
       <label for="full_name">Full Name *</label>
       <input id="full_name" name="full_name" required value="<?= e((string)$account['full_name']) ?>">
     </div>
-    <div>
-      <label for="username">Username *</label>
-      <input id="username" name="username" required minlength="3" maxlength="40" pattern="[A-Za-z0-9._]+" value="<?= e((string)$account['username']) ?>">
-    </div>
   </div>
 
   <div class="admin-form-grid">
@@ -200,8 +208,8 @@ require __DIR__ . '/_header.php';
       <select id="role" name="role" required>
         <?php foreach ([
           'super_admin' => 'Super Admin',
-          'admin' => 'Admin',
-          'investments_only' => 'Investments Only',
+          'investments_only' => 'Investor',
+          'partner' => 'Partner',
         ] as $value => $label): ?>
           <option value="<?= e($value) ?>" <?= $account['role'] === $value ? 'selected' : '' ?>>
             <?= e($label) ?>
@@ -220,17 +228,32 @@ require __DIR__ . '/_header.php';
   <section class="admin-password-panel">
     <h2>Investment Access</h2>
     <?php if(!$investmentAccessReady):?>
-      <p>The access table is not installed. <a href="upgrade_investment_user_access.php">Run the Investment User Access installer</a> before selecting Investments Only.</p>
+      <p>The access table is not installed. <a href="upgrade_investment_user_access.php">Run the Investment User Access installer</a> before selecting Investor.</p>
     <?php elseif(!$investments):?>
       <p>No investments are available to assign.</p>
     <?php else:?>
-      <p>Select every investment this account may open. These assignments apply when the role is Investments Only.</p>
+      <p>Select every investment this account may open. These assignments apply when the role is Investor.</p>
       <div class="admin-form-grid">
         <?php foreach($investments as $investment):?>
+          <?php $isArchived=strtolower(trim((string)$investment['status']))==='archived';?>
           <label class="admin-checkbox-panel">
-            <span class="admin-checkbox"><input type="checkbox" name="investment_ids[]" value="<?=(int)$investment['id']?>" <?=in_array((int)$investment['id'],$selectedInvestmentIds,true)?'checked':''?>> <?=e((string)$investment['project_name'])?></span>
-            <small><?=e(ucwords(str_replace('_',' ',(string)$investment['status'])))?></small>
+            <span class="admin-checkbox"><input type="checkbox" name="investment_ids[]" value="<?=(int)$investment['id']?>" <?=in_array((int)$investment['id'],$selectedInvestmentIds,true)?'checked':''?>> <?=e((string)$investment['project_name'])?><?=$isArchived?' - ARCHIVED':''?></span>
+            <?php if(!$isArchived):?><small><?=e(ucwords(str_replace('_',' ',(string)$investment['status'])))?></small><?php endif;?>
           </label>
+        <?php endforeach;?>
+      </div>
+    <?php endif;?>
+  </section>
+
+  <section class="admin-password-panel">
+    <h2>Partner Access</h2>
+    <?php if(!$partnerAccessReady):?>
+      <p>The access table is not installed. <a href="upgrade_files_permits_partner_access.php">Run the Files, Permits &amp; Partner Access installer</a> before selecting Partner.</p>
+    <?php else:?>
+      <p>Select each admin area this Partner may access. These assignments apply only to the Partner role.</p>
+      <div class="admin-form-grid">
+        <?php foreach(partner_permission_definitions() as $permission=>$label):?>
+          <label class="admin-checkbox-panel"><span class="admin-checkbox"><input type="checkbox" name="partner_permissions[]" value="<?=e($permission)?>" <?=in_array($permission,$selectedPartnerPermissions,true)?'checked':''?>> <?=e($label)?></span></label>
         <?php endforeach;?>
       </div>
     <?php endif;?>

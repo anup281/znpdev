@@ -9,7 +9,7 @@ if($id){$s=db()->prepare('SELECT * FROM newsletter_campaigns WHERE id=?');$s->ex
 if($_SERVER['REQUEST_METHOD']==='POST'&&csrf_check($_POST['csrf_token']??'')){
  try{
   $action=$_POST['action']??'save';
-  if($action==='delete'&&$id){db()->prepare('DELETE FROM newsletter_campaigns WHERE id=?')->execute([$id]);header('Location: newsletter_campaigns.php?message=deleted');exit;}
+  if($action==='delete'&&$id){if(!super_admin_role()){http_response_code(403);exit('Only a Super Admin may delete newsletter campaigns.');}db()->beginTransaction();db()->prepare('DELETE FROM newsletter_deliveries WHERE campaign_id=?')->execute([$id]);db()->prepare('DELETE FROM newsletter_campaigns WHERE id=?')->execute([$id]);db()->commit();header('Location: newsletter_campaigns.php?deleted=1');exit;}
   if($action==='duplicate'&&$id){
    $s=db()->prepare("INSERT INTO newsletter_campaigns(name,subject,preview_text,html_body,text_body,header_image,status,created_by) SELECT CONCAT(name,' Copy'),subject,preview_text,html_body,text_body,header_image,'draft',? FROM newsletter_campaigns WHERE id=?");
    $s->execute([(int)($user['id']??0),$id]);
@@ -40,7 +40,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&csrf_check($_POST['csrf_token']??'')){
    $message='Campaign sent now.';
   }else{$message='Campaign saved.';}
   $s=db()->prepare('SELECT * FROM newsletter_campaigns WHERE id=?');$s->execute([$id]);$campaign=$s->fetch();
- }catch(Throwable $e){$error=$e->getMessage();}
+ }catch(Throwable $e){if(db()->inTransaction())db()->rollBack();$error=$e->getMessage();}
 }
 $stats=['total'=>0,'accepted'=>0,'failed'=>0,'opened'=>0,'clicked'=>0];
 if($id){$s=db()->prepare("SELECT COUNT(*) total,SUM(status='accepted') accepted,SUM(status='failed') failed,SUM(opened_at IS NOT NULL) opened,SUM(clicked_at IS NOT NULL) clicked FROM newsletter_deliveries WHERE campaign_id=?");$s->execute([$id]);$stats=array_merge($stats,$s->fetch()?:[]);}
@@ -64,6 +64,6 @@ require __DIR__.'/_header.php';
  </div>
  <div class="newsletter-test-row"><label>Test Recipient<input type="email" name="test_email" value="<?=e((string)($user['email']??''))?>"></label><button class="secondary" name="action" value="test">Send Test</button></div>
 </form>
-<?php if($id):?><form method="post" class="admin-delete-campaign-form" onsubmit="return confirm('Delete this campaign and its delivery history?')"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="id" value="<?=$id?>"><button class="danger" name="action" value="delete">Delete Campaign</button></form><?php endif;?>
+<?php if($id&&super_admin_role()):?><form method="post" class="admin-delete-campaign-form" onsubmit="return confirm('Delete this campaign and its delivery history?')"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="id" value="<?=$id?>"><button class="danger" name="action" value="delete">Delete Campaign</button></form><?php endif;?>
 <p class="admin-help-text">*Open tracking is approximate because some email clients block images or preload tracking pixels.</p>
 <?php require __DIR__.'/_footer.php';?>

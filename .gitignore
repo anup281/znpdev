@@ -3,6 +3,7 @@ config.local.php
 .env
 .env.*
 !.env.example
+vendor/
 
 # Runtime uploads and generated documents (retain access-control files)
 uploads/**
@@ -21,4 +22,3 @@ data/documents/**
 .idea/
 .vscode/
 Thumbs.db
-

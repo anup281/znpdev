@@ -107,6 +107,7 @@ try {
         $existing = array_map('intval',$stmt->fetchAll(PDO::FETCH_COLUMN));
         $toAdd = array_diff($selected,$existing);
         $toRemove = array_diff($existing,$selected);
+        if(partner_role())$toRemove=[];
         db()->beginTransaction();
         foreach ($toAdd as $projectId) {
             db()->prepare('INSERT IGNORE INTO contact_project_interests(record_type,record_id,investment_opportunity_id,status,interest_level,created_by_admin_id) VALUES(?,?,?,?,?,?)')

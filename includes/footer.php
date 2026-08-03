@@ -5,7 +5,7 @@
     <div class="newsletter-signup-copy">
       <p><?=e(setting('newsletter_footer_text','Receive updates on new developments, investment opportunities, and company news.'))?></p>
     </div>
-    <form action="<?=e(app_url('/newsletter_subscribe.php'))?>" method="post" class="newsletter-signup-form" id="newsletter-signup-form" novalidate>
+    <form action="<?=e(app_url('/helpers/newsletter_subscribe.php'))?>" method="post" class="newsletter-signup-form" id="newsletter-signup-form" novalidate>
       <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
       <input class="newsletter-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       <input type="text" name="full_name" placeholder="Name" aria-label="Name" autocomplete="name">
@@ -31,7 +31,7 @@
   </div>
 </footer>
 <div id="public-toast-tray" class="public-toast-tray" aria-live="polite" aria-atomic="false"></div>
-<script src="<?=e(app_url('/assets/site.js'))?>"></script>
+<script src="<?=e(app_url('/assets/site.js'))?>?v=<?=e(function_exists('znp_asset_version')?znp_asset_version():'1')?>"></script>
 <script src="<?=e(app_url('/assets/newsletter-signup.js'))?>" defer></script>
 </body>
 </html>

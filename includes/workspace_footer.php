@@ -65,44 +65,6 @@ if (!function_exists('znp_render_workspace_footer')) {
     }
 }
 
-if (!function_exists('znp_workspace_footer_styles')) {
-    function znp_workspace_footer_styles(): void
-    {
-        echo <<<'HTML'
-<style>
-.znp-workspace-footer{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:18px;
-    width:100%;
-    min-height:54px;
-    padding:14px 3%;
-    border-top:1px solid rgba(22,58,112,.12);
-    background:#fff;
-    color:#667487;
-    font-family:Arial,sans-serif;
-    font-size:12px;
-    line-height:1.35;
-}
-.znp-workspace-footer span:nth-child(2){text-align:center}
-.znp-workspace-footer span:last-child{text-align:right}
-@media(max-width:700px){
-    .znp-workspace-footer{
-        flex-direction:column;
-        align-items:flex-start;
-        gap:4px;
-        padding-top:13px;
-        padding-bottom:13px;
-    }
-    .znp-workspace-footer span:nth-child(2),
-    .znp-workspace-footer span:last-child{text-align:left}
-}
-</style>
-HTML;
-    }
-}
-
 if (!function_exists('znp_workspace_document_end')) {
     /** Close the shared workspace document after portal-specific scripts run. */
     function znp_workspace_document_end(): void

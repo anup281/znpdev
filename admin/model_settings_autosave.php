@@ -10,6 +10,7 @@ $occupancyField=preg_match('/^occupancy_year_([12])_month_(1[0-2]|[1-9])$/',$fie
 $integers=['bank_loan_interest_only_months','number_of_units','starting_cash_month','first_distribution_month','holdback_start_month','refinance_month','refinance_interest_only_months'];$percentages=array_values(array_filter($fields,static fn($n)=>str_contains($n,'percent')||str_contains($n,'split')||str_contains($n,'rate')||$n==='tier2_lp_irr_hurdle'));
 if($projectId<1||(!in_array($field,$fields,true)&&!$constructionField&&!$occupancyField))model_settings_json(['ok'=>false,'error'=>'Invalid model setting request.'],422);
 if(!can_access_investment($projectId))model_settings_json(['ok'=>false,'error'=>'You do not have access to this investment.'],403);
+$archiveCheck=db()->prepare("SELECT 1 FROM investment_opportunities WHERE id=? AND (status='archived' OR (status='' AND is_visible=0 AND accepting_inquiries=0))");$archiveCheck->execute([$projectId]);if($archiveCheck->fetchColumn())model_settings_json(['ok'=>false,'error'=>'Archived investments are view only.'],403);
 try{
  if(!db()->query("SHOW TABLES LIKE 'investment_model_settings'")->fetchColumn())throw new RuntimeException('Model Settings are unavailable because the required database table is missing. Contact the system administrator.');
  $check=db()->prepare('SELECT id FROM investment_opportunities WHERE id=?');$check->execute([$projectId]);if(!$check->fetchColumn())throw new RuntimeException('Investment not found.');

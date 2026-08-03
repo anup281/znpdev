@@ -14,6 +14,17 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $stmt=db()->prepare("INSERT INTO contact_inquiries(reference_number,inquiry_type,investment_opportunity_id,full_name,company_name,email,phone,prospective_investor_type,investment_amount,message,source_page,ip_address,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)");
   $stmt->execute([$ref,$type,null,trim($_POST['name']),trim($_POST['company']),trim($_POST['email']),trim($_POST['phone']),$_POST['investor_type']?:null,$_POST['investment_amount']?:null,trim($_POST['message']),'contact.php',$_SERVER['REMOTE_ADDR']??null,$_SERVER['HTTP_USER_AGENT']??null]);
   $inquiryId=(int)db()->lastInsertId();contact_activity_log('inquiry',$inquiryId,'submitted','Contact submitted','Public website inquiry form',null,null,date('Y-m-d H:i:s'));$message='Thank you. Your inquiry has been received.';$_SESSION['contact_form_started']=time();
+  $messageInfoEmail=trim(setting('message_info_email_address'));
+  if($messageInfoEmail!==''&&filter_var($messageInfoEmail,FILTER_VALIDATE_EMAIL)){
+   $typeLabels=['investment_opportunity'=>'Investment Opportunity','development_opportunity'=>'Development Services','land_acquisition'=>'Land Opportunity','joint_venture'=>'Partnership','general_inquiry'=>'General Inquiry','media_press'=>'Media','other'=>'Other'];
+   $name=trim((string)$_POST['name']);$company=trim((string)$_POST['company']);$email=trim((string)$_POST['email']);$phone=trim((string)$_POST['phone']);$investorType=trim((string)($_POST['investor_type']??''));$investmentAmount=trim((string)($_POST['investment_amount']??''));$inquiryMessage=trim((string)$_POST['message']);$typeLabel=$typeLabels[$type]??ucwords(str_replace('_',' ',$type));
+   $investorTypeLabel=$investorType!==''?ucwords(str_replace('_',' ',$investorType)):'Not provided';
+   $investmentAmountLabel=$investmentAmount!==''&&is_numeric($investmentAmount)?'$'.number_format((float)$investmentAmount):'Not provided';
+   $notificationHtml='<h2>New Website Inquiry</h2><p>A new inquiry was submitted through the ZNP Development contact page.</p><table cellpadding="6" cellspacing="0" border="0"><tr><td><strong>Reference</strong></td><td>'.e($ref).'</td></tr><tr><td><strong>Inquiry Type</strong></td><td>'.e($typeLabel).'</td></tr><tr><td><strong>Name</strong></td><td>'.e($name).'</td></tr><tr><td><strong>Company</strong></td><td>'.e($company?:'Not provided').'</td></tr><tr><td><strong>Email</strong></td><td><a href="mailto:'.e($email).'">'.e($email).'</a></td></tr><tr><td><strong>Phone</strong></td><td>'.e($phone?:'Not provided').'</td></tr><tr><td><strong>Prospective Investor Type</strong></td><td>'.e($investorTypeLabel).'</td></tr><tr><td><strong>Investment Amount</strong></td><td>'.e($investmentAmountLabel).'</td></tr></table><h3>Message</h3><p>'.($inquiryMessage!==''?nl2br(e($inquiryMessage)):'Not provided').'</p>';
+   $mailResult=app_send_mail_detailed($messageInfoEmail,'New Website Inquiry: '.$typeLabel.' — '.$ref,$notificationHtml);
+   if($mailResult['ok'])contact_activity_log('inquiry',$inquiryId,'notification_sent','Admin notification sent','Sent to '.$messageInfoEmail,null,null,date('Y-m-d H:i:s'));
+   else error_log('Contact inquiry notification failed for '.$ref.': '.$mailResult['error']);
+  }
  }}
 }
 require __DIR__.'/includes/header.php';

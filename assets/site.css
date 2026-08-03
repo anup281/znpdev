@@ -123,7 +123,7 @@ h1 span{color:var(--navy)}
 .page-hero{padding:76px 0 52px;background:linear-gradient(#fff,#f7f9fc);border-bottom:1px solid var(--line)}
 .page-hero h1{font-size:clamp(40px,5vw,62px);margin:0}
 .page-hero p{max-width:720px;font-size:18px;color:var(--muted)}
-.invest-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.invest-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}.invest-grid>.znp-ui-empty-state{grid-column:1/-1}
 .invest-card{border:1px solid var(--line);border-radius:26px;overflow:hidden;background:#fff;box-shadow:0 16px 42px rgba(11,31,58,.07)}
 .invest-visual{min-height:290px;position:relative;overflow:hidden;background:linear-gradient(135deg,#c8d5e2,#7e91a6)}
 .invest-visual.alt{background:linear-gradient(135deg,#d8d0c2,#95836b)}
@@ -2720,6 +2720,7 @@ button.primary > .fa-pen,
 /* ZNP v4.3.7 focused CRM and investment workspace */
 .admin-row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .admin-project-badges{display:flex;gap:5px;flex-wrap:wrap}.admin-project-badges span{display:inline-flex;padding:4px 8px;border-radius:999px;background:#edf3f8;color:#173d63;font-size:12px;font-weight:700}
+.admin-user-project-access{grid-column:1/-1}.admin-user-project-access dt{align-self:start}.admin-user-project-access dd{min-width:0}.admin-user-no-projects{color:var(--muted);font-size:12px;font-weight:650}
 .admin-project-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px;padding:8px;background:#eef3f7;border-radius:12px}.admin-project-tabs a{padding:10px 16px;border-radius:8px;text-decoration:none;color:#173d63;font-weight:750}.admin-project-tabs a.active,.admin-project-tabs a:hover{background:#fff;box-shadow:0 2px 10px rgba(15,42,67,.08)}
 .admin-project-overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.admin-project-overview-card{background:#fff;border:1px solid #dde6ed;border-radius:14px;padding:24px}.admin-project-overview-card h2{margin-top:0}.admin-project-overview-card dl{display:grid;gap:12px}.admin-project-overview-card dl div{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #edf1f4;padding-bottom:10px}.admin-project-overview-card dt{font-weight:700}.admin-project-overview-card dd{margin:0;text-align:right}
 .admin-document-workspace-embedded{max-width:100%;min-height:0}.admin-coming-soon{background:#fff;border:1px dashed #b8c8d6;border-radius:14px;padding:60px 28px;text-align:center}.admin-coming-soon span{display:inline-flex;padding:6px 10px;border-radius:999px;background:#edf3f8;color:#173d63;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.admin-coming-soon h2{margin:14px 0 8px}.admin-coming-soon p{margin:0;color:#647586}
@@ -3153,7 +3154,7 @@ button.admin-danger-link:focus-visible{
 .wf-year-badge.refi,.wf-month-event.refinance{background:#f8edcf;color:#815e0b}.wf-month-event.stabilization{background:#ffead7;color:#a24b08}.wf-month-event.distribution{background:#e2f4e9;color:#176b3d}.wf-month-event.irr{background:#e1effb;color:#175d96}
 
 /* Investment investor structure */
-.admin-investor-structure{padding:4px 0 32px}.admin-investor-hero{margin-bottom:16px;padding:26px 28px;border:1px solid #d6e2ea;border-radius:17px;background:linear-gradient(125deg,#fff,#f2f7fa);box-shadow:0 8px 26px rgba(12,38,64,.055)}.admin-investor-hero span,.admin-investor-panel>header span{color:#2b7585;font-size:10px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}.admin-investor-hero h2{margin:5px 0 6px;color:#0d345c;font-size:28px}.admin-investor-hero p{margin:0;color:#6c8090}.admin-investor-alert{margin-bottom:16px;padding:11px 13px;border-radius:9px;font-size:12px;font-weight:750}.admin-investor-alert.error{border:1px solid #efb9bd;background:#fff0f1;color:#9b2029}.admin-investor-alert.success{border:1px solid #b9dfc8;background:#edf8f1;color:#17623d}.admin-investor-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.admin-investor-metrics article{padding:17px 18px;border:1px solid #d8e2ea;border-radius:13px;background:#fff;box-shadow:0 5px 18px rgba(12,38,64,.045)}.admin-investor-metrics span{display:block;color:#718493;font-size:9px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}.admin-investor-metrics strong{display:block;margin:6px 0 3px;color:#123d61;font-size:22px}.admin-investor-metrics small{color:#8695a1;font-size:10px}.admin-investor-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.admin-investor-panel{min-width:0;padding:22px;border:1px solid #d7e2e9;border-radius:16px;background:#fff;box-shadow:0 7px 24px rgba(12,38,64,.055)}.admin-investor-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:17px}.admin-investor-panel>header h3{margin:4px 0 5px;color:#153e60;font-size:20px}.admin-investor-panel>header p{max-width:430px;margin:0;color:#748694;font-size:11px;line-height:1.45}.admin-investor-progress{height:7px;margin-bottom:17px;border-radius:999px;background:#e9eef2;overflow:hidden}.admin-investor-progress i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#287b88,#4ca27a);transition:width .25s}.admin-investor-list{display:grid;gap:10px}.admin-investor-person{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid #e0e8ed;border-radius:11px;background:#fafcfd}.admin-investor-person>div{display:flex;align-items:center;gap:11px;min-width:0}.admin-investor-avatar{display:grid;width:36px;height:36px;flex:0 0 36px;place-items:center;border-radius:10px;background:#e7f1f4;color:#176278;font-size:11px;font-weight:900;text-transform:uppercase}.admin-investor-person h4{margin:0 0 3px;color:#213e57;font-size:13px}.admin-investor-person strong{margin-right:7px;color:#176278;font-size:12px}.admin-investor-person>div>div>span{color:#7b8c98;font-size:10px}.admin-investor-delete{padding:5px;border:0;background:transparent;color:#a13840;font-size:10px;font-weight:800;cursor:pointer}.admin-investor-empty{display:flex;min-height:110px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border:1px dashed #cfdbe3;border-radius:11px;background:#fafcfd;color:#82909a;text-align:center;font-size:11px}.admin-investor-empty strong{color:#536b7c;font-size:12px}.admin-investor-unit-setting{display:block;margin-bottom:17px;padding:13px;border:1px solid #dae5eb;border-radius:11px;background:#f7fafb}.admin-investor-unit-setting>span:first-child{display:block;margin-bottom:6px;color:#536b7c;font-size:10px;font-weight:850;text-transform:uppercase}.admin-investor-unit-setting>span:nth-child(2){display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px}.admin-investor-unit-setting b{color:#758794}.admin-investor-unit-setting input{width:100%;min-width:0;padding:8px 9px;border:1px solid #ccd9e2;border-radius:8px;color:#173a56;font:inherit}.admin-investor-unit-setting small{display:block;min-height:14px;margin-top:4px;color:#687e8e;font-size:9px}.admin-investor-dialog{width:min(560px,calc(100% - 28px));padding:0;border:0;border-radius:16px;background:#fff;box-shadow:0 24px 80px rgba(10,31,49,.3)}.admin-investor-dialog::backdrop{background:rgba(9,28,44,.55);backdrop-filter:blur(3px)}.admin-investor-dialog form{padding:23px}.admin-investor-dialog form>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.admin-investor-dialog form>header span{color:#2b7585;font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.admin-investor-dialog h3{margin:4px 0 0;color:#123b5d;font-size:21px}.admin-investor-dialog form>header button{padding:0;border:0;background:transparent;color:#728494;font-size:27px;line-height:1;cursor:pointer}.admin-investor-form-error{margin-bottom:13px;padding:10px 11px;border:1px solid #efb9bd;border-radius:8px;background:#fff0f1;color:#9b2029;font-size:11px;font-weight:750}.admin-investor-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.admin-investor-form-grid label>span:first-child{display:block;margin-bottom:5px;color:#52697a;font-size:10px;font-weight:800}.admin-investor-form-grid label>input,.admin-investor-input-unit{width:100%;box-sizing:border-box;border:1px solid #ccd9e2;border-radius:8px;background:#fff}.admin-investor-form-grid label>input{padding:10px}.admin-investor-input-unit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;overflow:hidden}.admin-investor-input-unit b,.admin-investor-input-unit em{padding:0 9px;color:#758794;font-size:11px;font-style:normal}.admin-investor-input-unit input{width:100%;min-width:0;padding:10px 2px;border:0;outline:0;font:inherit}.admin-investor-form-grid label>small{display:block;margin-top:4px;color:#82919d;font-size:9px}.admin-investor-dialog form>footer{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.admin-investor-dialog form>footer button{padding:9px 14px}
+.admin-investor-structure{padding:4px 0 32px}.admin-investor-hero{margin-bottom:16px;padding:26px 28px;border:1px solid #d6e2ea;border-radius:17px;background:linear-gradient(125deg,#fff,#f2f7fa);box-shadow:0 8px 26px rgba(12,38,64,.055)}.admin-investor-hero span,.admin-investor-panel>header span{color:#2b7585;font-size:10px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}.admin-investor-hero h2{margin:5px 0 6px;color:#0d345c;font-size:28px}.admin-investor-hero p{margin:0;color:#6c8090}.admin-investor-alert{margin-bottom:16px;padding:11px 13px;border-radius:9px;font-size:12px;font-weight:750}.admin-investor-alert.error{border:1px solid #efb9bd;background:#fff0f1;color:#9b2029}.admin-investor-alert.success{border:1px solid #b9dfc8;background:#edf8f1;color:#17623d}.admin-investor-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.admin-investor-metrics article{padding:17px 18px;border:1px solid #d8e2ea;border-radius:13px;background:#fff;box-shadow:0 5px 18px rgba(12,38,64,.045)}.admin-investor-metrics span{display:block;color:#718493;font-size:9px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}.admin-investor-metrics strong{display:block;margin:6px 0 3px;color:#123d61;font-size:22px}.admin-investor-metrics small{color:#8695a1;font-size:10px}.admin-investor-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.admin-investor-panel{min-width:0;padding:22px;border:1px solid #d7e2e9;border-radius:16px;background:#fff;box-shadow:0 7px 24px rgba(12,38,64,.055)}.admin-investor-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:17px}.admin-investor-panel>header h3{margin:4px 0 5px;color:#153e60;font-size:20px}.admin-investor-panel>header p{max-width:430px;margin:0;color:#748694;font-size:11px;line-height:1.45}.admin-investor-progress{display:block;width:100%;height:7px;margin-bottom:17px;border:0;border-radius:999px;background:#e9eef2;overflow:hidden;appearance:none}.admin-investor-progress::-webkit-progress-bar{background:#e9eef2;border-radius:inherit}.admin-investor-progress::-webkit-progress-value{border-radius:inherit;background:linear-gradient(90deg,#287b88,#4ca27a)}.admin-investor-progress::-moz-progress-bar{border-radius:inherit;background:linear-gradient(90deg,#287b88,#4ca27a)}.admin-investor-list{display:grid;gap:10px}.admin-investor-person{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid #e0e8ed;border-radius:11px;background:#fafcfd}.admin-investor-person>div{display:flex;align-items:center;gap:11px;min-width:0}.admin-investor-avatar{display:grid;width:36px;height:36px;flex:0 0 36px;place-items:center;border-radius:10px;background:#e7f1f4;color:#176278;font-size:11px;font-weight:900;text-transform:uppercase}.admin-investor-person h4{margin:0 0 3px;color:#213e57;font-size:13px}.admin-investor-person strong{margin-right:7px;color:#176278;font-size:12px}.admin-investor-person>div>div>span{color:#7b8c98;font-size:10px}.admin-investor-delete{padding:5px;border:0;background:transparent;color:#a13840;font-size:10px;font-weight:800;cursor:pointer}.admin-investor-empty{display:flex;min-height:110px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border:1px dashed #cfdbe3;border-radius:11px;background:#fafcfd;color:#82909a;text-align:center;font-size:11px}.admin-investor-empty strong{color:#536b7c;font-size:12px}.admin-investor-unit-setting{display:block;margin-bottom:17px;padding:13px;border:1px solid #dae5eb;border-radius:11px;background:#f7fafb}.admin-investor-unit-setting>span:first-child{display:block;margin-bottom:6px;color:#536b7c;font-size:10px;font-weight:850;text-transform:uppercase}.admin-investor-unit-setting>span:nth-child(2){display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px}.admin-investor-unit-setting b{color:#758794}.admin-investor-unit-setting input{width:100%;min-width:0;padding:8px 9px;border:1px solid #ccd9e2;border-radius:8px;color:#173a56;font:inherit}.admin-investor-unit-setting small{display:block;min-height:14px;margin-top:4px;color:#687e8e;font-size:9px}.admin-investor-dialog{width:min(560px,calc(100% - 28px));padding:0;border:0;border-radius:16px;background:#fff;box-shadow:0 24px 80px rgba(10,31,49,.3)}.admin-investor-dialog::backdrop{background:rgba(9,28,44,.55);backdrop-filter:blur(3px)}.admin-investor-dialog form{padding:23px}.admin-investor-dialog form>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.admin-investor-dialog form>header span{color:#2b7585;font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.admin-investor-dialog h3{margin:4px 0 0;color:#123b5d;font-size:21px}.admin-investor-dialog form>header button{padding:0;border:0;background:transparent;color:#728494;font-size:27px;line-height:1;cursor:pointer}.admin-investor-form-error{margin-bottom:13px;padding:10px 11px;border:1px solid #efb9bd;border-radius:8px;background:#fff0f1;color:#9b2029;font-size:11px;font-weight:750}.admin-investor-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.admin-investor-form-grid label>span:first-child{display:block;margin-bottom:5px;color:#52697a;font-size:10px;font-weight:800}.admin-investor-form-grid label>input,.admin-investor-input-unit{width:100%;box-sizing:border-box;border:1px solid #ccd9e2;border-radius:8px;background:#fff}.admin-investor-form-grid label>input{padding:10px}.admin-investor-input-unit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;overflow:hidden}.admin-investor-input-unit b,.admin-investor-input-unit em{padding:0 9px;color:#758794;font-size:11px;font-style:normal}.admin-investor-input-unit input{width:100%;min-width:0;padding:10px 2px;border:0;outline:0;font:inherit}.admin-investor-form-grid label>small{display:block;margin-top:4px;color:#82919d;font-size:9px}.admin-investor-dialog form>footer{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.admin-investor-dialog form>footer button{padding:9px 14px}
 @media(max-width:980px){.admin-investor-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-investor-columns{grid-template-columns:1fr}}@media(max-width:600px){.admin-investor-hero{padding:21px}.admin-investor-hero h2{font-size:24px}.admin-investor-metrics{grid-template-columns:1fr 1fr}.admin-investor-metrics article{padding:14px}.admin-investor-metrics strong{font-size:18px}.admin-investor-panel{padding:17px}.admin-investor-panel>header{align-items:stretch;flex-direction:column}.admin-investor-panel>header button{align-self:flex-start}.admin-investor-form-grid{grid-template-columns:1fr}.admin-investor-dialog form{padding:18px}}
 .admin-investor-form-grid [hidden]{display:none!important}.admin-investor-person-actions{display:flex!important;align-items:center!important;gap:7px!important}.admin-investor-person-actions button{padding:5px;border:0;background:transparent;color:#23627a;font-size:10px;font-weight:800;cursor:pointer}.admin-investor-person-actions .admin-investor-delete{color:#a13840}
 .admin-investor-person h4 button{padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:850;text-align:left;text-decoration:underline;text-decoration-color:#b9cbd5;text-underline-offset:3px;cursor:pointer}.admin-investor-person h4 button:hover{color:#176278;text-decoration-color:#176278}.admin-investor-projection-dialog{width:min(1120px,calc(100% - 28px));max-height:calc(100vh - 36px);padding:0;border:0;border-radius:17px;background:#fff;box-shadow:0 24px 80px rgba(10,31,49,.32)}.admin-investor-projection-dialog::backdrop{background:rgba(9,28,44,.58);backdrop-filter:blur(3px)}.admin-investor-projection-dialog>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px 18px;border-bottom:1px solid #e0e8ed;background:linear-gradient(125deg,#fff,#f2f7fa)}.admin-investor-projection-dialog>header span{color:#2b7585;font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.admin-investor-projection-dialog>header h3{margin:4px 0;color:#123b5d;font-size:22px}.admin-investor-projection-dialog>header p{margin:0;color:#718493;font-size:11px}.admin-investor-projection-dialog>header button{padding:0;border:0;background:transparent;color:#728494;font-size:28px;line-height:1;cursor:pointer}.admin-investor-projection-dialog>[data-projection-content]{padding:20px 24px}.admin-investor-projection-dialog>footer{display:flex;justify-content:flex-end;padding:0 24px 20px}.admin-investor-projection-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:16px}.admin-investor-projection-metrics article{padding:14px 15px;border:1px solid #dce6ec;border-radius:11px;background:#f8fbfc}.admin-investor-projection-metrics span{display:block;color:#728594;font-size:9px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}.admin-investor-projection-metrics strong{display:block;margin-top:5px;color:#153e60;font-size:18px}.admin-investor-projection-table-wrap{overflow-x:auto;border:1px solid #dce5eb;border-radius:11px}.admin-investor-projection-table-wrap table{width:100%;min-width:850px;border-collapse:collapse}.admin-investor-projection-table-wrap th,.admin-investor-projection-table-wrap td{padding:10px 11px;border-bottom:1px solid #e6edf1;color:#536b7c;font-size:10px;text-align:right;white-space:nowrap}.admin-investor-projection-table-wrap thead th{background:#f2f6f8;color:#38566d;font-size:9px;font-weight:850;text-transform:uppercase}.admin-investor-projection-table-wrap th:first-child,.admin-investor-projection-table-wrap td:nth-child(2){text-align:left}.admin-investor-projection-table-wrap tbody th{color:#153e60}.admin-investor-projection-table-wrap tbody tr:last-child th,.admin-investor-projection-table-wrap tbody tr:last-child td{border-bottom:0}.admin-investor-projection-note{margin:12px 0 0;color:#758795;font-size:10px;line-height:1.5}
@@ -3181,3 +3182,169 @@ button.admin-danger-link:focus-visible{
 .public-investment-year-list{grid-template-columns:1fr}.public-investment-year-card{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px}.public-investment-year-card>strong{color:var(--navy);font-size:13px}.public-investment-year-card>span{min-width:0;color:#708493;font-size:10px;font-weight:800;white-space:nowrap}.public-investment-year-card>span b{color:#167044;font-size:14px}.public-investment-year-card>em{padding:5px 8px;border-radius:999px;background:#e7f1f4;color:#176278;font-size:8px;font-style:normal;font-weight:850;text-align:center;text-transform:uppercase;white-space:nowrap}
 @media(max-width:520px){.public-investment-year-card{grid-template-columns:42px minmax(0,1fr) auto;gap:7px;padding:10px}.public-investment-year-card>strong{font-size:11px}.public-investment-year-card>span{font-size:8px}.public-investment-year-card>span b{font-size:11px}.public-investment-year-card>em{max-width:105px;padding:4px 5px;font-size:6px;white-space:normal}}
 .admin-investor-ownership-share{display:block!important;margin-top:4px}
+
+/* Keep the Admin Portal footer at the bottom on short pages. */
+.admin-body{display:flex;min-height:100vh;min-height:100dvh;flex-direction:column}
+.admin-body>.admin-main{flex:1 0 auto}
+.admin-body>.admin-footer{margin-top:auto}
+
+/* Keep portal shortcuts visible in the Admin mobile header. */
+.admin-mobile-header-icons{display:none}
+.admin-native-menu{display:none}
+@media(max-width:900px){
+  .admin-mobile-header-icons{display:block;margin-left:auto}
+  .admin-mobile-header-icons .znp-portal-icons{gap:3px!important;margin:0!important}
+  .admin-mobile-header-icons .znp-portal-icon{width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;border-radius:7px!important}
+  .admin-mobile-header-icons .znp-portal-icon i{font-size:12px!important}
+  #admin-nav>.znp-portal-icons{display:none!important}
+  .admin-menu-toggle{margin-left:0!important;flex:0 0 auto}
+}
+
+/* Native Admin mobile menu mirrors Construction one-for-one. */
+@media(max-width:900px){
+  .admin-menu-toggle{display:none!important}
+  .admin-native-menu{display:block;position:relative;margin-left:0;color:#fff}
+  .admin-native-menu summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:34px;min-width:34px;height:34px;padding:0;border:1px solid rgba(255,255,255,.65);border-radius:8px;background:rgba(255,255,255,.08);user-select:none}
+  .admin-native-menu-bars{display:grid;gap:3px}
+  .admin-native-menu-bars i{display:block;width:16px;height:2px;border-radius:999px;background:currentColor}
+  .admin-native-menu summary::-webkit-details-marker{display:none}
+  .admin-native-menu[open] summary{background:#fff;color:#102f4f}
+  .admin-native-menu-panel{position:fixed;top:54px;left:0;right:0;z-index:1200;background:#0b1f3a;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 14px 28px rgba(8,25,43,.28);max-height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+  .admin-native-menu-panel a,.admin-native-menu-panel .admin-native-main{display:flex;align-items:center;min-height:44px;padding:10px 12px;color:#fff;text-decoration:none;border-radius:8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;line-height:normal}
+  .admin-native-menu-panel .admin-native-main{box-sizing:border-box;width:100%}
+  .admin-native-menu-panel .admin-native-sub{min-height:34px;padding:6px 12px 6px 28px;font-size:13px;color:#dbe8f4}
+  .admin-native-menu-panel a.active,.admin-native-menu-panel a:hover{background:rgba(255,255,255,.14);color:#fff}
+}
+
+/* Construction Portal is the source of truth for the Admin mobile header/menu. */
+@media(max-width:900px){
+  .admin-top.znp-workspace-top{
+    min-height:54px!important;
+    height:54px!important;
+    padding:0 10px!important;
+    gap:6px!important;
+    flex-wrap:nowrap!important;
+  }
+  .admin-top .admin-brand{
+    min-height:34px!important;
+    height:34px!important;
+    padding:0 8px!important;
+  }
+  .admin-top .admin-brand span,
+  .admin-top .admin-brand strong{font-size:12px!important}
+  .admin-menu-toggle{
+    display:grid!important;
+    place-content:center!important;
+    gap:3px!important;
+    width:34px!important;
+    min-width:34px!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:0!important;
+    border:1px solid rgba(255,255,255,.65)!important;
+    border-radius:8px!important;
+    background:rgba(255,255,255,.08)!important;
+    color:#fff!important;
+  }
+  .admin-menu-toggle span{
+    display:block!important;
+    width:16px!important;
+    height:2px!important;
+    margin:0!important;
+    border-radius:999px!important;
+    background:currentColor!important;
+  }
+  .admin-menu-toggle[aria-expanded="true"]{
+    background:#fff!important;
+    color:#102f4f!important;
+  }
+  #admin-nav,
+  #admin-nav.is-open{
+    position:fixed!important;
+    top:54px!important;
+    left:0!important;
+    right:0!important;
+    z-index:1200!important;
+    max-height:calc(100vh - 54px)!important;
+    overflow-y:auto!important;
+    padding:12px 18px calc(18px + env(safe-area-inset-bottom))!important;
+    border:0!important;
+    background:#0b1f3a!important;
+    box-shadow:0 14px 28px rgba(8,25,43,.28)!important;
+  }
+  #admin-nav{display:none!important}
+  #admin-nav.is-open{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:4px!important;
+  }
+  #admin-nav .admin-top-link,
+  #admin-nav .admin-hover-group>button,
+  #admin-nav .admin-hover-menu a{
+    box-sizing:border-box!important;
+    display:flex!important;
+    align-items:center!important;
+    width:100%!important;
+    min-height:44px!important;
+    margin:0!important;
+    padding:10px 12px!important;
+    border:0!important;
+    border-radius:8px!important;
+    background:transparent!important;
+    color:#fff!important;
+    font-family:Arial,sans-serif!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    line-height:1.2!important;
+    text-align:left!important;
+    text-decoration:none!important;
+  }
+  #admin-nav .admin-hover-group{
+    display:flex!important;
+    width:100%!important;
+    flex-direction:column!important;
+    gap:0!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+  }
+  #admin-nav .admin-hover-menu,
+  #admin-nav .admin-hover-menu-right{
+    position:static!important;
+    display:flex!important;
+    min-width:0!important;
+    flex-direction:column!important;
+    gap:4px!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    visibility:visible!important;
+    opacity:1!important;
+    transform:none!important;
+    pointer-events:auto!important;
+  }
+  #admin-nav .admin-hover-menu a{
+    padding-left:28px!important;
+    color:#dbe8f4!important;
+  }
+  #admin-nav .admin-top-link:hover,
+  #admin-nav .admin-top-link.active,
+  #admin-nav .admin-hover-group>button:hover,
+  #admin-nav .admin-hover-menu a:hover,
+  #admin-nav .admin-hover-menu a.active{
+    background:rgba(255,255,255,.14)!important;
+    color:#fff!important;
+  }
+}
+
+@media(max-width:900px){
+  .admin-top .admin-menu-toggle{display:none!important}
+  .admin-top #admin-nav,
+  .admin-top #admin-nav.is-open{display:none!important}
+}
+.admin-archived-dependencies{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.admin-archived-dependencies strong{flex-basis:100%;font-size:.78rem;color:#596979}.admin-archived-dependencies a{display:inline-flex;padding:5px 8px;border:1px solid #d8e0e7;border-radius:999px;background:#f7f9fb;color:#294f75;font-size:.75rem;font-weight:700;text-decoration:none}.admin-archived-dependencies a:hover{background:#edf3f8}
+.admin-partner-role .admin-danger-button,.admin-partner-role .admin-danger-link,.admin-partner-role .admin-delete-contact-button,.admin-partner-role .newsletter-delete-button,.admin-partner-role .admin-project-delete-form,.admin-partner-role .admin-delete-campaign-form,.admin-partner-role .admin-template-delete,.admin-partner-role .admin-revoke-agreement-form{display:none!important}

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function app_base_path(): string {
  $script='/'.ltrim(str_replace('\\','/',(string)($_SERVER['SCRIPT_NAME']??'')),'/');
- if(preg_match('#^(.*?)/(?:admin|dev|portal|manage|lead)(?:/|$)#',$script,$matches))return rtrim((string)$matches[1],'/');
+ if(preg_match('#^(.*?)/(?:admin|dev|portal|manage|lead|helpers)(?:/|$)#',$script,$matches))return rtrim((string)$matches[1],'/');
  $directory=rtrim(str_replace('\\','/',dirname($script)),'/');
  return $directory==='/'?'':$directory;
 }
@@ -115,8 +115,25 @@ function setting_save(string $key,string $value,string $type='string'): void {
  $s->execute([$key,$value,$type]);
 }
 function znp_secret_key(): string {
- $seed=(defined('APP_KEY')?(string)APP_KEY:'').(defined('DB_NAME')?(string)DB_NAME:'').(defined('DB_USER')?(string)DB_USER:'').__DIR__;
+ $seed=(defined('APP_KEY')?(string)APP_KEY:'').(defined('DB_NAME')?(string)DB_NAME:'').(defined('DB_USER')?(string)DB_USER:'');
  return hash('sha256',$seed,true);
+}
+function znp_legacy_secret_keys(): array {
+ $prefix=(defined('APP_KEY')?(string)APP_KEY:'').(defined('DB_NAME')?(string)DB_NAME:'').(defined('DB_USER')?(string)DB_USER:'');
+ $directories=[__DIR__];
+ $documentRoot=rtrim(str_replace('\\','/',realpath((string)($_SERVER['DOCUMENT_ROOT']??''))?:''),'/');
+ if($documentRoot!==''){
+  $directories[]=$documentRoot.'/includes';
+  $directories[]=$documentRoot.'/test/includes';
+ }
+ return array_values(array_unique(array_map(static fn(string $directory):string=>hash('sha256',$prefix.$directory,true),$directories)));
+}
+function znp_decrypt_with_key(string $stored,string $key): string|false {
+ $raw=base64_decode(substr($stored,4),true);if($raw===false||strlen($raw)<17)return false;
+ return openssl_decrypt(substr($raw,16),'AES-256-CBC',$key,OPENSSL_RAW_DATA,substr($raw,0,16));
+}
+function znp_decrypted_secret_is_valid(string|false $plain): bool {
+ return is_string($plain)&&$plain!==''&&preg_match('//u',$plain)===1&&!preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/',$plain);
 }
 function encrypt_setting(string $plain): string {
  if($plain==='')return '';
@@ -127,8 +144,22 @@ function encrypt_setting(string $plain): string {
 function decrypt_setting(string $stored): string {
  if(str_starts_with($stored,'plain:')) return (string)base64_decode(substr($stored,6),true);
  if(!str_starts_with($stored,'enc:')||!function_exists('openssl_decrypt')) return $stored;
- $raw=base64_decode(substr($stored,4),true);if($raw===false||strlen($raw)<17)return '';
- return (string)openssl_decrypt(substr($raw,16),'AES-256-CBC',znp_secret_key(),OPENSSL_RAW_DATA,substr($raw,0,16));
+ $decrypted=znp_decrypt_with_key($stored,znp_secret_key());
+ if(znp_decrypted_secret_is_valid($decrypted))return $decrypted;
+ foreach(znp_legacy_secret_keys() as $legacyKey){
+  $decrypted=znp_decrypt_with_key($stored,$legacyKey);
+  if(znp_decrypted_secret_is_valid($decrypted))return $decrypted;
+ }
+ return '';
+}
+function migrate_secret_setting(string $key): bool {
+ $stored=setting($key);
+ if(!str_starts_with($stored,'enc:')||!function_exists('openssl_decrypt'))return false;
+ if(znp_decrypted_secret_is_valid(znp_decrypt_with_key($stored,znp_secret_key())))return false;
+ $plain=decrypt_setting($stored);
+ if($plain==='')return false;
+ setting_save($key,encrypt_setting($plain),'secret');
+ return true;
 }
 function smtp_configured(): bool {
  return setting('smtp_host')!=='' && setting('smtp_username')!=='' && decrypt_setting(setting('smtp_password'))!=='';
@@ -146,8 +177,9 @@ function smtp_expect($socket,array $codes,string $step): string {
 function smtp_command($socket,string $command,array $codes,string $step): string {
  fwrite($socket,$command."\r\n");return smtp_expect($socket,$codes,$step);
 }
-function app_send_mail_detailed(string $to,string $subject,string $html,array $attachments=[]): array {
+function app_send_mail_detailed(string $to,string $subject,string $html,array $attachments=[],array $cc=[]): array {
  $to=trim($to);if(!filter_var($to,FILTER_VALIDATE_EMAIL))return ['ok'=>false,'error'=>'Invalid recipient email address.'];
+ $cc=array_values(array_unique(array_filter(array_map(static fn(mixed $email):string=>strtolower(trim((string)$email)),$cc),static fn(string $email):bool=>filter_var($email,FILTER_VALIDATE_EMAIL)!==false&&strcasecmp($email,$to)!==0)));
  if(!smtp_configured())return ['ok'=>false,'error'=>'SMTP is not configured in Admin Settings.'];
  $host=setting('smtp_host');$port=(int)setting('smtp_port','587');$security=strtolower(setting('smtp_encryption','tls'));
  $username=setting('smtp_username');$password=decrypt_setting(setting('smtp_password'));$from=setting('mail_from_email',$username);$fromName=setting('mail_from_name','ZNP Development');$reply=setting('mail_reply_to',$from);
@@ -163,9 +195,9 @@ function app_send_mail_detailed(string $to,string $subject,string $html,array $a
    smtp_command($socket,'EHLO '.($_SERVER['SERVER_NAME']??'znpdev.com'),[250],'EHLO after TLS');
   }
   smtp_command($socket,'AUTH LOGIN',[334],'Authentication');smtp_command($socket,base64_encode($username),[334],'SMTP username');smtp_command($socket,base64_encode($password),[235],'SMTP password');
-  smtp_command($socket,'MAIL FROM:<'.$from.'>',[250],'Sender');smtp_command($socket,'RCPT TO:<'.$to.'>',[250,251],'Recipient');smtp_command($socket,'DATA',[354],'Message data');
+  smtp_command($socket,'MAIL FROM:<'.$from.'>',[250],'Sender');smtp_command($socket,'RCPT TO:<'.$to.'>',[250,251],'Recipient');foreach($cc as $ccEmail)smtp_command($socket,'RCPT TO:<'.$ccEmail.'>',[250,251],'CC recipient');smtp_command($socket,'DATA',[354],'Message data');
   $boundary='znp_'.bin2hex(random_bytes(12));
-  $headers=['Date: '.date(DATE_RFC2822),'From: '.$fromName.' <'.$from.'>','Reply-To: '.$reply,'To: <'.$to.'>','Subject: =?UTF-8?B?'.base64_encode($subject).'?=','MIME-Version: 1.0','Content-Type: multipart/mixed; boundary="'.$boundary.'"'];
+  $headers=['Date: '.date(DATE_RFC2822),'From: '.$fromName.' <'.$from.'>','Reply-To: '.$reply,'To: <'.$to.'>'];if($cc)$headers[]='Cc: '.implode(', ',array_map(static fn(string $email):string=>'<'.$email.'>',$cc));$headers=array_merge($headers,['Subject: =?UTF-8?B?'.base64_encode($subject).'?=','MIME-Version: 1.0','Content-Type: multipart/mixed; boundary="'.$boundary.'"']);
   $body="--$boundary\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n".quoted_printable_encode($html)."\r\n";
   foreach($attachments as $a){$data=(string)($a['data']??'');$name=preg_replace('/[^A-Za-z0-9._-]/','_',($a['name']??'attachment.pdf'));$type=$a['type']??'application/octet-stream';$body.="--$boundary\r\nContent-Type: $type; name=\"$name\"\r\nContent-Disposition: attachment; filename=\"$name\"\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode($data))."\r\n";}
   $body.="--$boundary--\r\n";$message=implode("\r\n",$headers)."\r\n\r\n".$body;
@@ -197,6 +229,21 @@ function app_public_url(string $path=''): string {
  $script=str_replace('\\','/',$_SERVER['SCRIPT_NAME']??'/');
  $base=preg_replace('#/admin/[^/]*$#','',$script);
  return ($https?'https':'http').'://'.$host.rtrim((string)$base,'/').'/'.ltrim($path,'/');
+}
+function app_upload_url(string $path): string {
+ $normalized=ltrim(str_replace('\\','/',trim($path)),'/');
+ $uploadsAt=strpos($normalized,'uploads/');
+ $uploadPath=$uploadsAt===false?'uploads/'.basename($normalized):substr($normalized,$uploadsAt);
+ $configured=trim(setting('website_url',''));
+ $parts=$configured!==''?parse_url($configured):false;
+ if(is_array($parts)&&!empty($parts['host'])){
+  $scheme=(string)($parts['scheme']??'https');
+  $port=isset($parts['port'])?':'.(int)$parts['port']:'';
+  return $scheme.'://'.$parts['host'].$port.'/'.ltrim($uploadPath,'/');
+ }
+ $https=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off');
+ $host=(string)($_SERVER['HTTP_HOST']??'localhost');
+ return ($https?'https':'http').'://'.$host.'/'.ltrim($uploadPath,'/');
 }
 /* Version 1.6.2: eligible agreements and contact activity */
 function eligible_agreement_entities(): array {

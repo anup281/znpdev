@@ -1,0 +1,84 @@
+/* ZNP CONSTRUCTION DASHBOARD REDESIGN START */
+.construction-portal-home{
+  max-width:1200px;
+  margin:0 auto;
+  min-height:0;
+  gap:20px;
+  align-content:start;
+  padding:10px 0 32px;
+}
+.construction-portal-home .admin-portal-eyebrow{
+  margin-bottom:6px;
+  font-size:9px;
+}
+.construction-portal-projects{
+  display:grid;
+  gap:14px;
+}
+.construction-portal-section-heading{
+  text-align:center;
+}
+.construction-portal-section-heading p{
+  margin:0 0 4px;
+  color:#b08d50;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.construction-portal-section-heading h2{
+  margin:0;
+  color:#0b1f3a;
+  font-size:22px;
+  letter-spacing:-.025em;
+}
+.construction-portal-actions{
+  grid-template-columns:repeat(auto-fit,minmax(260px,340px));
+  justify-content:center;
+  gap:12px;
+}
+.construction-portal-project-button{
+  min-height:132px;
+  padding:18px;
+  border-radius:13px;
+}
+.construction-portal-project-button i{
+  width:38px;
+  height:38px;
+  border-radius:10px;
+  font-size:17px;
+}
+.construction-portal-project-button i{
+  background:#173d68;
+}
+.construction-portal-project-button span{
+  margin-top:14px;
+  font-size:17px;
+}
+.construction-portal-project-button small{
+  margin-top:4px;
+  line-height:1.3;
+}
+.construction-portal-empty{
+  grid-column:1/-1;
+  display:flex;
+  min-height:170px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  border:1px dashed #bdc9d5;
+  border-radius:16px;
+  background:#fff;
+  color:#718096;
+  text-align:center;
+}
+.construction-portal-empty i{
+  font-size:30px;
+}
+@media(max-width:600px){
+  .construction-portal-home{gap:16px;padding:0 0 22px}
+  .construction-portal-actions{grid-template-columns:minmax(0,1fr)}
+  .construction-portal-project-button{min-height:112px;padding:15px}
+}
+/* ZNP CONSTRUCTION DASHBOARD REDESIGN END */

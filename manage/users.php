@@ -1,31 +1,36 @@
 <?php
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__.'/includes/bootstrap.php';manage_require_admin();
 $message='';$error='';
-try{
-  $tableExists=(bool)db()->query("SHOW TABLES LIKE 'management_users'")->fetchColumn();
-}catch(Throwable $e){$tableExists=false;}
-if($_SERVER['REQUEST_METHOD']==='POST' && $tableExists){
-  if(!hash_equals(csrf_token(),(string)($_POST['csrf_token']??''))){$error='Your session expired. Please try again.';}
-  else{
-    $action=(string)($_POST['action']??'');
-    try{
-      if($action==='create'){
-        $name=trim((string)($_POST['full_name']??''));$email=strtolower(trim((string)($_POST['email']??'')));$username=strtolower(trim((string)($_POST['username']??'')));$password=(string)($_POST['password']??'');
-        if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||$username===''||strlen($password)<8)throw new RuntimeException('Complete all fields and use a password of at least 8 characters.');
-        $s=db()->prepare('INSERT INTO management_users(full_name,email,username,password_hash,role,is_active,must_change_password,created_at,updated_at) VALUES(?,?,?,?,\'management_user\',1,1,NOW(),NOW())');
-        $s->execute([$name,$email,$username,password_hash($password,PASSWORD_DEFAULT)]);$message='Management user created.';
-      }elseif($action==='toggle'){
-        $s=db()->prepare('UPDATE management_users SET is_active=?,updated_at=NOW() WHERE id=?');$s->execute([(int)($_POST['is_active']??0),(int)($_POST['id']??0)]);$message='User status updated.';
-      }
-    }catch(Throwable $e){$error=$e->getMessage();}
-  }
+if(!manage_schema_ready())$error='Run the Management Properties database upgrade before managing users.';
+if($_SERVER['REQUEST_METHOD']==='POST'&&manage_schema_ready()){
+ if(!hash_equals(csrf_token(),(string)($_POST['csrf_token']??'')))$error='Your session expired. Please try again.';
+ else try{
+  $action=(string)($_POST['action']??'save');$id=(int)($_POST['id']??0);
+  if($action==='toggle'){$s=db()->prepare("UPDATE admin_users SET is_active=? WHERE id=? AND role='management_user'");$s->execute([(int)($_POST['is_active']??0),$id]);header('Location: users.php?saved=1');exit;}
+  $name=trim((string)($_POST['full_name']??''));$email=strtolower(trim((string)($_POST['email']??'')));$password=(string)($_POST['password']??'');$propertyIds=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['property_ids']??[])))));
+  if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||($id===0&&strlen($password)<12))throw new RuntimeException('Enter a valid name, email, and a password of at least 12 characters.');
+  $dup=db()->prepare('SELECT id FROM admin_users WHERE (LOWER(email)=?) AND id<>?');$dup->execute([$email,$id]);if($dup->fetch())throw new RuntimeException('That email is already in use.');
+  if($propertyIds){$marks=implode(',',array_fill(0,count($propertyIds),'?'));$valid=db()->prepare("SELECT id FROM management_properties WHERE id IN ($marks)");$valid->execute($propertyIds);if(count($valid->fetchAll(PDO::FETCH_COLUMN))!==count($propertyIds))throw new RuntimeException('One or more selected properties are invalid.');}
+  db()->beginTransaction();
+  if($id){$sql='UPDATE admin_users SET full_name=?,email=?,role=\'management_user\',is_active=1,must_change_password=0'.($password!==''?',password_hash=?':'').' WHERE id=?';$args=[$name,$email];if($password!=='')$args[]=password_hash($password,PASSWORD_DEFAULT);$args[]=$id;db()->prepare($sql)->execute($args);}
+  else{$s=db()->prepare("INSERT INTO admin_users(full_name,email,password_hash,role,is_active,must_change_password) VALUES(?,?,?,'management_user',1,0)");$s->execute([$name,$email,password_hash($password,PASSWORD_DEFAULT)]);$id=(int)db()->lastInsertId();}
+  db()->prepare('DELETE FROM management_property_users WHERE admin_user_id=?')->execute([$id]);$ins=db()->prepare('INSERT INTO management_property_users(management_property_id,admin_user_id,assigned_by_admin_user_id) VALUES(?,?,?)');foreach($propertyIds as $pid)$ins->execute([$pid,$id,(int)($managementUser['id']??0)]);
+  $roleCheck=db()->prepare('SELECT role FROM admin_users WHERE id=?');$roleCheck->execute([$id]);if(normalized_role((string)$roleCheck->fetchColumn())!=='management user')throw new RuntimeException('The database did not save the Management User role. Run the Management Properties upgrade again, then retry.');
+  db()->commit();header('Location: users.php?saved=1');exit;
+ }catch(Throwable $e){if(db()->inTransaction())db()->rollBack();$error=$e->getMessage();}
 }
-$users=$tableExists?db()->query('SELECT id,full_name,email,username,role,is_active,last_login_at,created_at FROM management_users ORDER BY full_name')->fetchAll():[];
+$editId=(int)($_GET['edit']??0);$edit=null;$assigned=[];
+if($editId){$s=db()->prepare("SELECT id,full_name,email,is_active FROM admin_users WHERE id=? AND role='management_user'");$s->execute([$editId]);$edit=$s->fetch()?:null;$s=db()->prepare('SELECT management_property_id FROM management_property_users WHERE admin_user_id=?');$s->execute([$editId]);$assigned=array_map('intval',$s->fetchAll(PDO::FETCH_COLUMN));}
+$users=manage_schema_ready()?db()->query("SELECT au.id,au.full_name,au.email,au.is_active,au.last_login_at,GROUP_CONCAT(mp.property_name ORDER BY mp.property_name SEPARATOR ', ') properties FROM admin_users au LEFT JOIN management_property_users mpu ON mpu.admin_user_id=au.id LEFT JOIN management_properties mp ON mp.id=mpu.management_property_id WHERE au.role='management_user' GROUP BY au.id ORDER BY au.full_name")->fetchAll():[];
+$activeTestUsers=array_values(array_filter($users,static fn(array $account):bool=>(int)$account['is_active']===1));
+$properties=manage_schema_ready()?manage_properties(true):[];
+require_once __DIR__.'/includes/header.php';
 ?>
-<section class="manage-page-heading"><h1>Management Users</h1><p>Separate accounts reserved for future ZNP Management access.</p></section>
-<?php if($message):?><div class="manage-alert success"><?=manage_e($message)?></div><?php endif;?><?php if($error):?><div class="manage-alert error"><?=manage_e($error)?></div><?php endif;?>
-<?php if(!$tableExists):?><div class="manage-alert error">Run <strong>/install_management_portal.php</strong> before creating management users.</div><?php else:?>
-<section class="manage-panel" style="margin-bottom:20px"><form method="post" class="manage-form-grid"><input type="hidden" name="csrf_token" value="<?=manage_e(csrf_token())?>"><input type="hidden" name="action" value="create"><label>Full Name<input name="full_name" required></label><label>Email<input type="email" name="email" required></label><label>Username<input name="username" required></label><label>Temporary Password<input type="password" name="password" minlength="8" required></label><div class="manage-form-full"><button class="manage-button primary">Create Management User</button></div></form></section>
-<section class="manage-panel"><div style="overflow:auto"><table class="manage-table"><thead><tr><th>User</th><th>Username</th><th>Status</th><th>Last Login</th><th>Action</th></tr></thead><tbody><?php if(!$users):?><tr><td colspan="5">No management users created.</td></tr><?php endif;?><?php foreach($users as $u):?><tr><td><strong><?=manage_e($u['full_name'])?></strong><br><small><?=manage_e($u['email'])?></small></td><td><?=manage_e($u['username'])?></td><td><span class="manage-status <?=$u['is_active']?'active':'inactive'?>"><?=$u['is_active']?'Active':'Disabled'?></span></td><td><?=manage_e($u['last_login_at']?:'Never')?></td><td><form method="post"><input type="hidden" name="csrf_token" value="<?=manage_e(csrf_token())?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?=(int)$u['id']?>"><input type="hidden" name="is_active" value="<?=$u['is_active']?0:1?>"><button class="manage-button <?=$u['is_active']?'danger':'primary'?>"><?=$u['is_active']?'Disable':'Enable'?></button></form></td></tr><?php endforeach;?></tbody></table></div></section>
-<?php endif;?>
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+<section class="manage-page-heading"><h1>Management Settings</h1><p>Manage properties, users, and global receipt categories.</p></section>
+<?php require __DIR__.'/includes/settings_tabs.php';?>
+<section class="manage-section-heading"><h2>Users</h2><p>Assign each user to one or more hotel properties.</p></section>
+<?php if(isset($_GET['saved'])):?><div class="manage-alert success">Management user saved.</div><?php endif;?><?php if($error):?><div class="manage-alert error"><?=manage_e($error)?></div><?php endif;?>
+<?php if(manage_schema_ready()):?><section class="manage-panel znp-mb-5"><form method="post" class="manage-form-grid"><input type="hidden" name="csrf_token" value="<?=manage_e(csrf_token())?>"><input type="hidden" name="id" value="<?=(int)($edit['id']??0)?>"><label>Full Name<input name="full_name" required value="<?=manage_e($edit['full_name']??'')?>"></label><label>Email<input type="email" name="email" required value="<?=manage_e($edit['email']??'')?>"></label><label><?= $edit?'New Password (optional)':'Password'?><input type="password" name="password" <?=$edit?'':'required minlength="12"'?>></label><fieldset class="manage-form-full manage-property-checks"><legend>Property Access</legend><?php foreach($properties as $p):?><label><input type="checkbox" name="property_ids[]" value="<?=(int)$p['id']?>" <?=in_array((int)$p['id'],$assigned,true)?'checked':''?>> <?=manage_e($p['property_name'])?></label><?php endforeach;?></fieldset><div class="manage-form-full"><button class="manage-button primary"><?= $edit?'Update':'Create'?> User</button><?php if($edit):?> <a href="users.php" class="manage-button">Cancel</a><?php endif;?></div></form></section>
+<section class="manage-panel"><div class="znp-table-scroll"><table class="manage-table"><thead><tr><th>User</th><th>Properties</th><th>Status</th><th>Last Login</th><th></th></tr></thead><tbody><?php foreach($users as $u):?><tr><td><strong><?=manage_e($u['full_name'])?></strong><br><small><?=manage_e($u['email'])?></small></td><td><?=manage_e($u['properties']?:'No properties assigned')?></td><td><span class="manage-status <?=$u['is_active']?'active':'inactive'?>"><?=$u['is_active']?'Active':'Disabled'?></span></td><td><?=manage_e($u['last_login_at']?:'Never')?></td><td><a class="manage-button" href="users.php?edit=<?=(int)$u['id']?>">Edit</a> <form method="post" class="manage-inline-form"><input type="hidden" name="csrf_token" value="<?=manage_e(csrf_token())?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?=(int)$u['id']?>"><input type="hidden" name="is_active" value="<?=$u['is_active']?0:1?>"><button class="manage-button"><?=$u['is_active']?'Disable':'Enable'?></button></form></td></tr><?php endforeach;?></tbody></table></div></section><?php endif;?>
+<?php if(manage_schema_ready()):?><section class="manage-panel znp-mt-5"><div class="manage-section-heading"><div><h2>Test User Access</h2><p>Open the Management Portal with a user’s exact property assignments and permissions.</p></div></div><div class="manage-actions"><?php foreach($activeTestUsers as $account):?><form method="post" action="<?=manage_e(app_url('/admin/impersonate.php'))?>" class="manage-inline-form"><input type="hidden" name="csrf_token" value="<?=manage_e(csrf_token())?>"><input type="hidden" name="user_id" value="<?=(int)$account['id']?>"><button class="manage-button" type="submit">View As <?=manage_e($account['full_name'])?></button></form><?php endforeach;?><?php if(!$activeTestUsers):?><span>No active Management users are available.</span><?php endif;?></div></section><?php endif;?>
+<?php require_once __DIR__.'/includes/footer.php';?>

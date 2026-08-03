@@ -1,0 +1,171 @@
+/* ZNP PUBLIC SITE REDESIGN START
+   Approved public-site visual system. This file is loaded only by the shared
+   public header; portal layouts and portal assets are not affected. */
+:root{--zpr-navy:#071a2d;--zpr-navy-2:#0d2a45;--zpr-gold:#b89b61;--zpr-gold-light:#d2bc8b;--zpr-cream:#f4f1ea;--zpr-paper:#fbfaf7;--zpr-ink:#13202b;--zpr-muted:#69747c;--zpr-line:rgba(7,26,45,.14)}
+body{color:var(--zpr-ink);background:var(--zpr-paper)}
+body>.site-header{position:sticky;top:0;z-index:100;background:rgba(7,26,45,.97);border:0;border-bottom:1px solid rgba(255,255,255,.12);backdrop-filter:blur(18px)}
+body>.site-header .nav{height:82px}
+body>.site-header .brand{color:#fff}
+body>.site-header .mark.wordmark{width:auto;height:auto;padding:0;background:none;border-radius:0;box-shadow:none;color:#fff;font-family:Georgia,"Times New Roman",serif;font-size:20px;font-weight:400;letter-spacing:.045em;text-transform:uppercase}
+body>.site-header .desktop a{color:rgba(255,255,255,.72);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+body>.site-header .desktop a:hover,body>.site-header .desktop a.active{color:#fff}
+body>.site-header .desktop a.active:after{left:18px;right:18px;bottom:18px;height:1px;background:var(--zpr-gold);border-radius:0}
+body>.site-header .desktop-cta{min-height:43px;padding:10px 17px;border-color:var(--zpr-gold);border-radius:0;background:var(--zpr-gold);color:var(--zpr-navy);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+body>.site-header .desktop-cta:hover{background:#c9ae74}
+body>.site-header .portal-login-icon{width:43px;height:43px;border-color:rgba(255,255,255,.3);border-radius:0;background:transparent;color:#fff}
+body>.site-header .portal-login-icon:hover{border-color:var(--zpr-gold);background:var(--zpr-gold);color:var(--zpr-navy)}
+body>.site-header .menu-btn{border-color:rgba(255,255,255,.28);border-radius:0;background:transparent}
+body>.site-header .menu-btn span{background:#fff}
+.contact-page>.site-header{background:rgba(7,26,45,.97)}
+body>.mobile-menu{top:92px;padding:12px;border-color:rgba(255,255,255,.13);border-radius:0;background:var(--zpr-navy);box-shadow:0 28px 70px rgba(0,0,0,.35)}
+body>.mobile-menu a{border-radius:0;color:rgba(255,255,255,.8);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+body>.mobile-menu a.active{background:rgba(255,255,255,.08);color:var(--zpr-gold-light)}
+body>.mobile-menu .cta{border-color:var(--zpr-gold);background:var(--zpr-gold);color:var(--zpr-navy)}
+body>.mobile-menu .mobile-portal-login{border-top:1px solid rgba(255,255,255,.14);color:#fff}
+
+/* Shared architectural page banner */
+body main>.blueprint-banner,body main>.projects-blueprint{position:relative;min-height:220px;display:flex;align-items:flex-end;padding:44px 0 38px;background:linear-gradient(120deg,#071a2d,#0d2a45);border:0;color:#fff;overflow:hidden}
+body main>.blueprint-banner:before,body main>.projects-blueprint:before{content:"";position:absolute;inset:0;opacity:.11;background-image:linear-gradient(rgba(255,255,255,.55) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.55) 1px,transparent 1px),linear-gradient(32deg,transparent 0 49.8%,rgba(255,255,255,.7) 50%,transparent 50.2%);background-size:44px 44px,44px 44px,100% 100%}
+body main>.blueprint-banner:after,body main>.projects-blueprint:after{content:"";position:absolute;right:-90px;bottom:-180px;width:480px;height:480px;border:1px solid rgba(210,188,139,.32);border-radius:50%;box-shadow:0 0 0 55px rgba(210,188,139,.04),0 0 0 110px rgba(210,188,139,.025)}
+body main>.blueprint-banner .container,body main>.projects-blueprint .container{position:relative;z-index:1;display:block;text-align:left;align-items:initial}
+body main>.blueprint-banner h1,body main>.projects-blueprint h1{max-width:800px;margin:0 0 16px;color:#fff;font-family:Georgia,"Times New Roman",serif;font-size:clamp(48px,6vw,76px);font-weight:400;letter-spacing:-.05em;line-height:.95}
+body main>.blueprint-banner h1:before,body main>.projects-blueprint h1:before{content:"ZNP DEVELOPMENT";display:block;margin-bottom:18px;color:var(--zpr-gold-light);font-family:Inter,system-ui,sans-serif;font-size:10px;font-weight:800;letter-spacing:.2em}
+body main>.blueprint-banner p,body main>.projects-blueprint p{max-width:720px;margin:0;color:rgba(255,255,255,.68);font-size:17px;line-height:1.65}
+
+/* Team */
+.team-page-simple{padding:100px 0;background:var(--zpr-cream)}
+.executive-list{gap:24px}
+.executive-profile{grid-template-columns:190px 1fr;gap:38px;padding:38px;border:1px solid var(--zpr-line);border-radius:0;background:#fff;box-shadow:none;overflow:hidden}
+.executive-profile>div:first-child{display:flex;align-items:flex-start;justify-content:center;min-height:0;background:transparent}
+.executive-photo{width:170px;height:170px;min-height:0;margin:0;border:4px solid var(--zpr-cream);border-radius:50%;box-shadow:0 0 0 1px var(--zpr-gold),0 14px 34px rgba(7,26,45,.12);object-fit:cover}
+.executive-profile>div:last-child{padding:2px 0}
+.executive-profile h2{color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-size:38px;font-weight:400;letter-spacing:-.035em}
+.executive-title{margin:8px 0;color:var(--zpr-gold);font-size:11px;font-weight:850;letter-spacing:.13em;text-transform:uppercase}
+.executive-specialty{margin:0 0 22px;color:#52616b;font-size:14px;font-weight:700}
+.executive-profile p{color:var(--zpr-muted);font-size:15px;line-height:1.8}
+.portrait-placeholder{width:170px;height:170px;min-height:0;margin:0;border:4px solid var(--zpr-cream);border-radius:50%;background:var(--zpr-navy);box-shadow:0 0 0 1px var(--zpr-gold);color:var(--zpr-gold-light);font-family:Georgia,"Times New Roman",serif;font-size:58px;font-weight:400}
+.executive-hobbies{border-color:var(--zpr-line)}
+.executive-hobbies strong{color:var(--zpr-navy)}
+.team-empty-state{padding:60px;border:1px solid var(--zpr-line);background:#fff;text-align:center}
+
+/* Projects */
+.portfolio-section{padding:100px 0;background:#fff}
+.portfolio-section.portfolio-commercial{background:var(--zpr-cream)}
+.portfolio-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:40px;padding-bottom:22px;border-bottom:1px solid var(--zpr-line)}
+.portfolio-section-heading h2{color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-size:clamp(42px,5vw,64px);font-weight:400;letter-spacing:-.045em}
+.portfolio-section-heading p{max-width:620px;color:var(--zpr-muted);font-size:15px;font-weight:400;text-align:right}
+.under-development-grid,.commercial-project-grid,.residential-gallery-grid{gap:22px}
+.project-info-card,.residential-gallery-card{border:1px solid var(--zpr-line);border-radius:0;background:#fff;box-shadow:none;transition:transform .3s,box-shadow .3s}
+.project-info-card:hover,.residential-gallery-card:hover{transform:translateY(-5px);box-shadow:0 24px 55px rgba(7,26,45,.1)}
+.project-card-image{height:270px;background:#d6d9da}
+.under-development-grid .project-card-image{height:390px}
+.project-card-image img{transition:transform .6s ease}
+.project-info-card:hover .project-card-image img,.residential-gallery-card:hover .project-card-image img{transform:scale(1.035)}
+.project-info-copy,.residential-gallery-copy{padding:28px}
+.project-info-copy h3,.residential-gallery-copy h3,.under-development-grid .project-info-copy h3{margin:0;color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:400;letter-spacing:-.025em;line-height:1.1}
+.project-info-copy>p,.residential-gallery-copy p{margin:8px 0 18px;color:var(--zpr-gold);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.project-chip-row{gap:7px}
+.project-chip{padding:9px 11px;border:1px solid var(--zpr-line);border-radius:0;background:var(--zpr-paper);color:var(--zpr-navy);font-size:12px}
+.project-chip small{color:#899198;font-size:8px;letter-spacing:.08em;text-transform:uppercase}
+
+/* Invest */
+body main>.projects-blueprint+.section{padding:100px 0;background:var(--zpr-cream)}
+.invest-grid{gap:24px}
+.invest-card{border:1px solid var(--zpr-line);border-radius:0;box-shadow:none;transition:transform .3s,box-shadow .3s}
+.invest-card:hover{transform:translateY(-5px);box-shadow:0 24px 55px rgba(7,26,45,.1)}
+.invest-visual{min-height:330px;background:#d6d9da}
+.invest-copy{padding:34px}
+.invest-copy h2{margin:14px 0 22px;color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-size:36px;font-weight:400;letter-spacing:-.035em}
+.investment-status{border-radius:0;background:var(--zpr-navy);color:#fff;font-size:9px;letter-spacing:.12em}
+.investment-status.raising{background:#365843;color:#fff}
+.investment-status.funded{background:#69747c;color:#fff}
+.invest-facts-clean{gap:0;border-top:1px solid var(--zpr-line);border-bottom:1px solid var(--zpr-line)}
+.invest-facts-clean .invest-fact{padding:16px 14px;border:0;border-right:1px solid var(--zpr-line);border-radius:0;background:transparent}
+.invest-facts-clean .invest-fact:last-child{border-right:0}
+.invest-fact strong{color:var(--zpr-navy);font-size:13px}
+.invest-fact span{font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.development-size-box{border-color:var(--zpr-line);border-radius:0;background:var(--zpr-paper)}
+.development-size-box span{color:#7b858d;font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+.development-size-box strong{color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-weight:400}
+.public-investment-actions .primary,.public-investment-actions .secondary{border-radius:0;font-size:11px;letter-spacing:.04em}
+.public-investment-actions .primary{border-color:var(--zpr-gold);background:var(--zpr-gold);color:var(--zpr-navy)}
+.public-investment-actions .secondary{border-color:var(--zpr-navy);color:var(--zpr-navy)}
+.funded-button{border-radius:0}
+.public-investment-model-dialog{border-radius:0}
+.public-investment-model-dialog>header{background:var(--zpr-navy)}
+.public-investment-model-dialog button,.public-investment-model-dialog select{border-radius:0}
+.znp-ui-empty-state{border-radius:0}
+
+/* Contact */
+.contact-wrap{padding:100px 0;background:var(--zpr-cream)}
+.contact-form{max-width:900px;padding:50px;border:1px solid var(--zpr-line);border-radius:0;background:#fff;box-shadow:0 25px 65px rgba(7,26,45,.08)}
+.contact-form .field{margin-bottom:20px}
+.contact-form label{margin-bottom:8px;color:var(--zpr-navy);font-size:10px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}
+.contact-form input,.contact-form select,.contact-form textarea{padding:15px 0;border:0;border-bottom:1px solid rgba(7,26,45,.25);border-radius:0;background:transparent;color:var(--zpr-ink)}
+.contact-form input:focus,.contact-form select:focus,.contact-form textarea:focus{border-color:var(--zpr-gold);box-shadow:none}
+.contact-form textarea{min-height:140px}
+.contact-form button.primary{min-width:210px;margin-top:12px;border-color:var(--zpr-gold);border-radius:0;background:var(--zpr-gold);color:var(--zpr-navy);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.status{border-radius:0}
+
+/* Public login */
+.public-login-page{background:var(--zpr-cream)}
+.public-login-shell{position:relative;min-height:calc(100vh - 82px);padding:80px 20px;background:var(--zpr-cream);overflow:hidden}
+.public-login-shell:before{content:"";position:absolute;inset:0;opacity:.08;background-image:linear-gradient(var(--zpr-navy) 1px,transparent 1px),linear-gradient(90deg,var(--zpr-navy) 1px,transparent 1px);background-size:48px 48px}
+.public-login-card{position:relative;width:min(540px,100%);border:1px solid var(--zpr-line);border-radius:0;box-shadow:0 28px 75px rgba(7,26,45,.13)}
+.portal-login-form{padding:52px}
+.portal-login-form h1{margin:0 0 12px;color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-size:48px;font-weight:400;letter-spacing:-.045em}
+.portal-login-form>p{color:var(--zpr-muted)}
+.portal-login-form label{color:var(--zpr-navy);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.portal-login-form input{padding:14px 0;border:0;border-bottom:1px solid rgba(7,26,45,.25);border-radius:0;background:transparent}
+.portal-login-form input:focus{border-color:var(--zpr-gold);box-shadow:none}
+.portal-login-form button.primary{border-color:var(--zpr-gold);border-radius:0;background:var(--zpr-gold);color:var(--zpr-navy);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.admin-forgot-link{color:var(--zpr-navy);font-size:12px}
+
+/* Legal pages */
+.legal-page-section{padding:90px 0;background:var(--zpr-cream)}
+.legal-page-card{max-width:900px;margin:auto;padding:58px 64px;border:1px solid var(--zpr-line);border-radius:0;background:#fff;box-shadow:none}
+.legal-page-updated{padding-bottom:20px;border-bottom:1px solid var(--zpr-line);color:var(--zpr-gold);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.legal-page-content{color:#4f5d66;font-size:16px;line-height:1.85}
+.legal-page-content h2,.legal-page-content h3{color:var(--zpr-navy);font-family:Georgia,"Times New Roman",serif;font-weight:400}
+.legal-page-content h2{margin-top:42px;font-size:32px}
+.legal-page-content h3{font-size:23px}
+.legal-page-content a{color:#806833;text-decoration:underline;text-underline-offset:3px}
+
+/* Newsletter and footer */
+body>.newsletter-signup{padding:48px 0;background:var(--zpr-navy-2);border-top:1px solid rgba(255,255,255,.1)}
+body>.newsletter-signup .newsletter-signup-inner{grid-template-columns:minmax(260px,.8fr) minmax(480px,1.2fr)}
+body>.newsletter-signup-copy p{color:rgba(255,255,255,.7);font-family:Georgia,"Times New Roman",serif;font-size:20px;line-height:1.45}
+body>.newsletter-signup-form input{border:0;border-bottom:1px solid rgba(255,255,255,.4);border-radius:0;background:transparent;color:#fff}
+body>.newsletter-signup-form input::placeholder{color:rgba(255,255,255,.55)}
+body>.newsletter-signup-form button{border-color:var(--zpr-gold);border-radius:0;background:var(--zpr-gold);color:var(--zpr-navy);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+body>.newsletter-signup-form button:hover{background:#c9ae74;color:var(--zpr-navy)}
+body>.site-footer{padding:34px 0;background:var(--zpr-navy);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.52)}
+body>.site-footer .footer{align-items:center}
+body>.site-footer .public-legal-links{gap:22px}
+body>.site-footer a{color:rgba(255,255,255,.72);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+body>.site-footer a:hover{color:var(--zpr-gold-light)}
+body>.site-footer .public-footer-meta{font-size:10px;letter-spacing:.04em}
+
+@media(max-width:900px){
+  body>.site-header .nav{height:72px}
+  body>.mobile-menu{top:80px}
+  body main>.blueprint-banner,body main>.projects-blueprint{min-height:200px;padding:38px 0 32px}
+  .executive-profile{grid-template-columns:170px 1fr;gap:30px;padding:32px}.executive-profile>div:last-child{padding:2px 0}
+  .commercial-project-grid,.residential-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .portfolio-section-heading{align-items:flex-start;flex-direction:column}.portfolio-section-heading p{text-align:left}
+  body>.newsletter-signup .newsletter-signup-inner{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  body main>.blueprint-banner h1,body main>.projects-blueprint h1{font-size:46px}
+  .team-page-simple,.portfolio-section,body main>.projects-blueprint+.section,.contact-wrap,.legal-page-section{padding:70px 0}
+  .executive-profile{grid-template-columns:1fr;padding:30px}.executive-profile>div:first-child{min-height:0;justify-content:flex-start}.executive-profile>div:last-child{padding:0}.executive-photo{min-height:0}
+  .under-development-grid,.commercial-project-grid,.residential-gallery-grid{grid-template-columns:1fr}.under-development-grid .project-card-image,.project-card-image{height:330px}
+  .invest-copy,.contact-form,.portal-login-form{padding:30px}
+  .invest-facts-clean{grid-template-columns:1fr}.invest-facts-clean .invest-fact{border-right:0;border-bottom:1px solid var(--zpr-line)}.invest-facts-clean .invest-fact:last-child{border-bottom:0}
+  .contact-form .form-grid{grid-template-columns:1fr}
+  .legal-page-card{padding:36px 28px}
+  body>.newsletter-signup-form{grid-template-columns:1fr}
+  body>.site-footer .footer{align-items:flex-start;flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){body *{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+/* ZNP PUBLIC SITE REDESIGN END */

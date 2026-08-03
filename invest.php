@@ -1,5 +1,5 @@
 <?php
-$pageTitle='Invest | ZNP Development'; $activePage='invest'; $pageAssetVersion='20260723-587';
+$pageTitle='Invest | ZNP Development'; $activePage='invest'; $pageAssetVersion='20260729-588';
 require __DIR__.'/includes/db.php'; require __DIR__.'/includes/functions.php';
 $items=db()->query("SELECT * FROM investment_opportunities WHERE is_visible=1 ORDER BY display_order")->fetchAll();
 $publicModelSettings=[];
@@ -33,6 +33,12 @@ require __DIR__.'/includes/header.php';
 ?>
 <main><?php render_public_page_header('invest','Partner With Us','We believe successful developments are built on strong partnerships. Discover opportunities to invest alongside our experienced team.','projects-blueprint'); ?>
 <section class="section soft"><div class="container invest-grid">
+<?php if (!$items): ?>
+<div class="znp-ui-empty-state">
+  <h3>No Active Investment Opportunities</h3>
+  <p>Please check back in the future as we are always seeking our next deal.</p>
+</div>
+<?php endif; ?>
 <?php foreach($items as $i): ?><?php
   $investmentImage = ltrim(trim((string)($i['hero_image'] ?? '')), '/');
   $investmentImageUrl = '';
@@ -41,7 +47,7 @@ require __DIR__.'/includes/header.php';
   }
 ?><article class="invest-card">
 <?php if ($investmentImageUrl !== ''): ?>
-<div class="invest-visual has-invest-photo" style="background-image:url('<?=e($investmentImageUrl)?>')" role="img" aria-label="<?=e((string)$i['project_name'])?>"></div>
+<div class="invest-visual has-invest-photo"><img class="znp-cover-image" src="<?=e($investmentImageUrl)?>" alt="<?=e((string)$i['project_name'])?>" loading="lazy"></div>
 <?php endif; ?>
 <div class="invest-copy"><span class="investment-status <?=e($i['status']==='raising_capital'?'raising':'funded')?>"><?=e(ucwords(str_replace('_',' ',$i['status'])))?></span>
 <h2><?=e($i['project_name'])?></h2><div class="invest-facts invest-facts-clean">

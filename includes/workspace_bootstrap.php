@@ -10,6 +10,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/dashboard_greeting.php';
 
 if (!function_exists('znp_application_version')) {
     function znp_application_version(): string
@@ -133,6 +134,18 @@ if (!function_exists('znp_workspace_bootstrap')) {
                 http_response_code(403);
                 exit('This account is restricted to Website > Investments.');
             }
+            if (partner_role($staff)) {
+                http_response_code(403);
+                exit('Partner accounts are restricted to their assigned Admin Portal areas.');
+            }
+            if (legacy_admin_role($staff)) {
+                http_response_code(403);
+                exit('This former Admin role must be converted by running the Admin Portal role installer.');
+            }
+            if (management_user_role($staff)) {
+                header('Location: '.app_url('/manage/'));
+                exit;
+            }
             $user = $staff;
         } elseif ($workspace === 'management') {
             if (!$staff) {
@@ -142,8 +155,7 @@ if (!function_exists('znp_workspace_bootstrap')) {
                 http_response_code(403);
                 exit('This account is restricted to Website > Investments.');
             }
-            $normalizedRole = function_exists('normalized_role') ? normalized_role((string)($staff['role'] ?? '')) : strtolower(str_replace('_', ' ', (string)($staff['role'] ?? '')));
-            if (!in_array($normalizedRole, ['super admin', 'super administrator'], true)) {
+            if (!management_portal_role($staff)) {
                 header('Location: '.app_url('/admin/'));
                 exit;
             }

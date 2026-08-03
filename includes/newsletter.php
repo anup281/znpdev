@@ -12,14 +12,14 @@ function newsletter_subscribe(string $email,string $name='',string $source='webs
  }
  return ['ok'=>true,'message'=>'Thank you for subscribing.'];
 }
-function newsletter_unsubscribe_url(array $subscriber): string { return app_public_url('newsletter_unsubscribe.php?token='.rawurlencode((string)$subscriber['unsubscribe_token'])); }
+function newsletter_unsubscribe_url(array $subscriber): string { return app_public_url('helpers/newsletter_unsubscribe.php?token='.rawurlencode((string)$subscriber['unsubscribe_token'])); }
 function newsletter_track_links(string $html,int $deliveryId): string {
- return preg_replace_callback('/href=("|\')(https?:\/\/[^"\']+)\1/i',function($m)use($deliveryId){$url=app_public_url('newsletter_click.php?d='.$deliveryId.'&u='.rawurlencode(base64_encode($m[2])));return 'href='.$m[1].e($url).$m[1];},$html)??$html;
+ return preg_replace_callback('/href=("|\')(https?:\/\/[^"\']+)\1/i',function($m)use($deliveryId){$url=app_public_url('helpers/newsletter_click.php?d='.$deliveryId.'&u='.rawurlencode(base64_encode($m[2])));return 'href='.$m[1].e($url).$m[1];},$html)??$html;
 }
 function newsletter_render_email(array $campaign,array $subscriber,array $delivery): string {
  $body=newsletter_track_links((string)$campaign['html_body'],(int)$delivery['id']);
  $preview=e((string)($campaign['preview_text']??''));$unsubscribe=e(newsletter_unsubscribe_url($subscriber));$address=e(setting('newsletter_physical_address','Dallas, Texas'));
- $pixel=e(app_public_url('newsletter_open.php?d='.(int)$delivery['id']));
+ $pixel=e(app_public_url('helpers/newsletter_open.php?d='.(int)$delivery['id']));
  return '<!doctype html><html><body style="margin:0;background:#f3f6f8;font-family:Arial,sans-serif;color:#17283b"><div style="display:none;max-height:0;overflow:hidden">'.$preview.'</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="640" style="max-width:640px;background:#fff;border-radius:10px;overflow:hidden"><tr><td style="background:#0b2343;color:#fff;padding:24px 30px;font-size:22px;font-weight:700">ZNP Development</td></tr><tr><td style="padding:32px 30px;line-height:1.65">'.$body.'</td></tr><tr><td style="padding:22px 30px;background:#eef3f7;color:#627181;font-size:12px;line-height:1.5">'.$address.'<br><a href="'.$unsubscribe.'" style="color:#365e85">Unsubscribe</a></td></tr></table></td></tr></table><img src="'.$pixel.'" width="1" height="1" alt="" style="display:block"></body></html>';
 }
 

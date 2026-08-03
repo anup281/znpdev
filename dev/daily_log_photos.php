@@ -17,7 +17,8 @@ if(!$rows){echo '<p class="muted">No photos are attached to this Daily Log.</p>'
 echo '<div class="daily-photo-grid">';
 foreach($rows as $photo){
     $path=ltrim(str_replace('\\','/',(string)$photo['file_path']),'/');
-    $url=strpos($path,'uploads/')===0?'../'.$path:(strpos($path,'dev/uploads/')===0?'../'.substr($path,4):'../uploads/dev/daily-logs/'.basename($path));
+    if(strpos($path,'uploads/')===false)$path='uploads/dev/daily-logs/'.basename($path);
+    $url=znp_storage_url($path);
     $name=(string)($photo['original_name']?:'Daily Log photo');
     echo '<a href="'.e($url).'" data-daily-photo-viewer title="'.e($name).'"><img loading="lazy" decoding="async" src="'.e($url).'" alt="'.e($name).'"></a>';
 }

@@ -6,7 +6,40 @@ function dev_is_super(): bool {
     $role = strtolower(trim((string)($u['role'] ?? '')));
     $role = str_replace(['_', '-'], ' ', $role);
     $role = preg_replace('/\s+/', ' ', $role);
-    return in_array($role, ['super admin', 'super administrator', 'administrator', 'admin'], true);
+    return in_array($role, ['super admin', 'super administrator'], true);
+}
+function dev_change_company_trade(PDO $pdo,int $companyId,int $linkId,int $newTradeId): void {
+    $ownsTransaction=!$pdo->inTransaction();
+    if($ownsTransaction)$pdo->beginTransaction();
+    try{
+        $current=$pdo->prepare('SELECT t.trade_name FROM construction_company_trades ct JOIN construction_trades t ON t.id=ct.construction_trade_id WHERE ct.id=? AND ct.construction_company_id=? AND ct.archived_at IS NULL LIMIT 1');
+        $current->execute([$linkId,$companyId]);$oldTradeName=$current->fetchColumn();
+        if($oldTradeName===false)throw new RuntimeException('Vendor trade was not found.');
+        $next=$pdo->prepare('SELECT trade_name FROM construction_trades WHERE id=? AND is_active=1 LIMIT 1');
+        $next->execute([$newTradeId]);$newTradeName=$next->fetchColumn();
+        if($newTradeName===false)throw new RuntimeException('Select a valid active trade.');
+
+        $pdo->prepare('UPDATE construction_company_trades SET construction_trade_id=?,updated_at=NOW() WHERE id=? AND construction_company_id=? AND archived_at IS NULL')
+            ->execute([$newTradeId,$linkId,$companyId]);
+
+        if((string)$oldTradeName!==(string)$newTradeName){
+            $pdo->prepare('UPDATE construction_project_companies SET trade_role=?,updated_at=NOW() WHERE construction_company_id=? AND trade_role=?')
+                ->execute([(string)$newTradeName,$companyId,(string)$oldTradeName]);
+            $pdo->prepare('UPDATE construction_companies SET primary_trade=CASE WHEN primary_trade=? THEN ? ELSE primary_trade END,updated_at=NOW() WHERE id=?')
+                ->execute([(string)$oldTradeName,(string)$newTradeName,$companyId]);
+        }else{
+            $activeCount=$pdo->prepare('SELECT COUNT(*) FROM construction_company_trades WHERE construction_company_id=? AND archived_at IS NULL');
+            $activeCount->execute([$companyId]);
+            if((int)$activeCount->fetchColumn()===1){
+                $pdo->prepare('UPDATE construction_project_companies SET trade_role=?,updated_at=NOW() WHERE construction_company_id=? AND trade_role<>?')
+                    ->execute([(string)$newTradeName,$companyId,(string)$newTradeName]);
+            }
+        }
+        if($ownsTransaction)$pdo->commit();
+    }catch(Throwable $exception){
+        if($ownsTransaction&&$pdo->inTransaction())$pdo->rollBack();
+        throw $exception;
+    }
 }
 function dev_can_access(int $projectId): bool {
     if(dev_is_super()) return true;

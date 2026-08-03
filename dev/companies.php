@@ -28,7 +28,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $companyId=(int)($_POST['company_id']??0);$linkId=(int)($_POST['link_id']??0);
    if($companyId<1||$linkId<1||$name==='')throw new RuntimeException('Vendor row could not be identified.');
    $s=$pdo->prepare('UPDATE construction_companies SET company_name=?,primary_contact=?,cell_phone=?,email=?,updated_at=NOW() WHERE id=?');$s->execute([$name,$contact,$phone,$email,$companyId]);
-   $s=$pdo->prepare('UPDATE construction_company_trades SET construction_trade_id=?,updated_at=NOW() WHERE id=? AND construction_company_id=?');$s->execute([$tradeId,$linkId,$companyId]);
+   dev_change_company_trade($pdo,$companyId,$linkId,$tradeId);
   }elseif($action==='add_trade'){
    $companyId=(int)($_POST['company_id']??0);if($companyId<1)throw new RuntimeException('Vendor could not be identified.');
    $s=$pdo->prepare('INSERT INTO construction_company_trades(construction_company_id,construction_trade_id,created_at,updated_at) VALUES(?,?,NOW(),NOW())');$s->execute([$companyId,$tradeId]);

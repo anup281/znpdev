@@ -15,6 +15,7 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
     if(!csrf_check((string)($_POST['csrf']??'')))throw new RuntimeException('Session expired.');
     $action=(string)($_POST['action']??'assign');
     if($action==='remove_assignment'){
+        if(!dev_is_super())throw new RuntimeException('Only a Super Admin may change vendor assignments.');
         $assignmentId=(int)($_POST['assignment_id']??0);
         if($assignmentId<1)throw new RuntimeException('Project Team assignment was not found.');
         $q=db()->prepare('DELETE FROM construction_project_companies WHERE id=? AND construction_project_id=?');$q->execute([$assignmentId,$projectId]);
@@ -22,7 +23,7 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
         header("Location: project_team.php?project_id=$projectId&removed=1");exit;
     }
     if(in_array($action,['add_project_contact','remove_project_contact'],true)){
-        if(!dev_is_super())throw new RuntimeException('Only an Admin or Super Admin may manage project contacts.');
+        if(!dev_is_super())throw new RuntimeException('Only a Super Admin may manage project contacts.');
         if(!$projectContactsReady)throw new RuntimeException('Project contacts are unavailable because the required database table is missing. Contact the system administrator.');
         if($action==='remove_project_contact'){
             $contactId=(int)($_POST['contact_id']??0);
@@ -41,6 +42,8 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
         try{dev_activity($projectId,'project_contact_added','Project contact added: '.$role.' — '.($organization?:$name),'project_contact',$contactId);}catch(Throwable $exception){error_log('Project contact creation activity log failed: '.$exception->getMessage());}
         header("Location: project_team.php?project_id=$projectId&contact_saved=1");exit;
     }
+    if(!dev_is_super())throw new RuntimeException('Only a Super Admin may change vendor assignments.');
+    if($action!=='assign')throw new RuntimeException('Vendor assignments cannot be changed. Remove the vendor from the project and create a new assignment.');
     $choice=trim((string)($_POST['vendor_trade_choice']??''));
     $parts=explode(':',$choice,2);
     $cid=(int)($parts[0]??0);$tradeId=(int)($parts[1]??0);
@@ -50,16 +53,8 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
     $tradeStmt->execute([$cid,$tradeId]);$trade=(string)$tradeStmt->fetchColumn();
     if($trade==='')throw new RuntimeException('The selected trade is not assigned to this company.');
     $notes=trim((string)($_POST['notes']??''));
-
-    if($action==='update_assignment'){
-        $assignmentId=(int)($_POST['assignment_id']??0);
-        if(!$assignmentId)throw new RuntimeException('Project Team assignment was not found.');
-        db()->prepare("UPDATE construction_project_companies SET construction_company_id=?,trade_role=?,project_contact_name='',project_contact_phone='',project_contact_email='',contract_status='Active',notes=?,updated_at=NOW() WHERE id=? AND construction_project_id=?")
-            ->execute([$cid,$trade,$notes,$assignmentId,$projectId]);
-    }else{
-        db()->prepare('INSERT INTO construction_project_companies(construction_project_id,construction_company_id,trade_role,project_contact_name,project_contact_phone,project_contact_email,contract_status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NOW(),NOW())')
-            ->execute([$projectId,$cid,$trade,'','','','Active',$notes]);
-    }
+    db()->prepare('INSERT INTO construction_project_companies(construction_project_id,construction_company_id,trade_role,project_contact_name,project_contact_phone,project_contact_email,contract_status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NOW(),NOW())')
+        ->execute([$projectId,$cid,$trade,'','','','Active',$notes]);
     header("Location: project_team.php?project_id=$projectId&saved=1");exit;
 }catch(Throwable $e){$error=$e->getMessage();}
 
@@ -81,7 +76,6 @@ $projectContacts=[];
 if($projectContactsReady){$q=db()->prepare('SELECT * FROM construction_project_contacts WHERE construction_project_id=? AND is_active=1 ORDER BY role_title,organization_name,contact_name,id');$q->execute([$projectId]);$projectContacts=$q->fetchAll();}
 $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_vendor_contacts WHERE construction_company_id=? AND is_active=1 ORDER BY is_primary DESC,name');$q->execute([$r['construction_company_id']]);$contacts[(int)$r['construction_company_id']]=$q->fetchAll();}
 ?>
-<style>.project-team-area-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:22px}.project-team-area-button{min-height:92px;justify-content:flex-start;text-align:left;padding:20px;border:2px solid var(--line);background:#fff;color:var(--navy);font-size:17px}.project-team-area-button span{display:block}.project-team-area-button small{display:block;margin-top:5px;color:var(--muted);font-weight:500}.project-team-area-button.is-active{border-color:var(--blue);background:var(--pale);box-shadow:inset 4px 0 0 var(--blue)}.project-team-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:4px 0 18px}.project-team-section-head h2{margin:0 0 5px}.project-team-section[hidden]{display:none}@media(max-width:700px){.project-team-area-picker{grid-template-columns:1fr}.project-team-section-head{align-items:stretch;flex-direction:column}.project-team-section-head .actions{display:grid}.project-team-section-head .btn,.project-team-section-head button{width:100%}}</style>
 <div class="page-head project-page-actions"><div><h1>Project Team</h1><p class="muted">Choose the type of project team member you want to view.</p></div></div>
 <?php if(isset($_GET['saved'])):?><div class="card notice-success">Project Team assignment saved.</div><?php endif;?>
 <?php if(isset($_GET['removed'])):?><div class="card notice-success">Project Team assignment removed.</div><?php endif;?>
@@ -92,7 +86,7 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
 
 <div class="project-team-area-picker" role="group" aria-label="Project Team areas"><button type="button" class="project-team-area-button" data-team-area="trades" aria-pressed="false"><span>TRADES<small>Vendors and assigned trade partners</small></span></button><button type="button" class="project-team-area-button" data-team-area="contacts" aria-pressed="false"><span>THIRD PARTY CONTACTS<small>Architects, engineers, agencies and inspectors</small></span></button></div>
 
-<section class="project-team-section" data-team-panel="trades" hidden><div class="project-team-section-head"><div><h2>Trades</h2><p class="muted">Assigned project vendors organized by trade.</p></div><div class="actions no-top"><a class="btn btn-primary" href="messages.php?project_id=<?=$projectId?>&all=1">Message All</a><button class="btn btn-secondary" type="button" data-open-modal="assign-modal">Assign Project Team</button></div></div><div class="project-team-cards">
+<section class="project-team-section" data-team-panel="trades" hidden><div class="project-team-section-head"><div><h2>Trades</h2><p class="muted">Assigned project vendors organized by trade.</p></div><div class="actions no-top"><a class="btn btn-primary" href="messages.php?project_id=<?=$projectId?>&all=1">Message All</a><?php if(dev_is_super()):?><button class="btn btn-secondary" type="button" data-open-modal="assign-modal">Assign Project Team</button><?php endif;?></div></div><div class="project-team-cards">
 <?php foreach($rows as $r):
     $contact=$r['selected_contact']?:$r['primary_contact'];
     $phone=$r['selected_phone']?:($r['cell_phone']?:$r['office_phone']);
@@ -120,8 +114,14 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
 </div></section>
 
 <?php foreach($rows as $r):?>
-<div class="dev-modal" id="info-<?=$r['id']?>" hidden><div class="dev-modal-panel vendor-info-modal"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
+<div class="dev-modal project-team-detail-modal" id="info-<?=$r['id']?>" hidden><div class="dev-modal-panel vendor-info-modal"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button>
 <h2><?=e($r['vendor_trade'].' | '.$r['company_name'])?></h2>
+<h3>Contacts</h3><div class="team-contact-list"><?php if(empty($contacts[(int)$r['construction_company_id']])):?><p class="muted">No additional contacts.</p><?php else:?><?php foreach($contacts[(int)$r['construction_company_id']] as $c):?><div class="team-contact-row"><strong><?=e($c['name'])?></strong><span><?=e($c['title']?:'—')?></span><?php if($c['phone']):?><a href="tel:<?=e(preg_replace('/\D+/','',$c['phone']))?>"><?=e($c['phone'])?></a><?php endif;?><?php if($c['email']):?><a href="mailto:<?=e($c['email'])?>"><?=e($c['email'])?></a><?php endif;?></div><?php endforeach;?><?php endif;?></div>
+<section class="project-team-note-editor">
+  <div class="project-team-note-head"><h3>Project Notes</h3><span class="project-team-note-status" data-note-status aria-live="polite">Saved</span></div>
+  <textarea data-project-team-note data-endpoint="project_team_notes_autosave.php" data-project-id="<?=$projectId?>" data-assignment-id="<?=$r['id']?>" data-csrf="<?=e(csrf_token())?>" aria-label="Project notes for <?=e($r['vendor_trade'].' '.$r['company_name'])?>"><?=e($r['notes'])?></textarea>
+  <p class="muted project-team-note-help">These notes are specific to this project and save automatically.</p>
+</section>
 <div class="detail-grid project-team-detail-grid">
   <div><strong>Company</strong><p><?=e($r['company_name'])?></p></div>
   <div><strong>Trade</strong><p><?=e($r['vendor_trade']?:'—')?></p></div>
@@ -136,26 +136,20 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
   <div><strong>W-9 On File</strong><p><?=$r['w9_on_file']?'Yes':'No'?></p></div>
   <div><strong>Status</strong><p><?=e($r['contract_status']?:'Active')?></p></div>
 </div>
-<h3>Contacts</h3><div class="team-contact-list"><?php if(empty($contacts[(int)$r['construction_company_id']])):?><p class="muted">No additional contacts.</p><?php else:?><?php foreach($contacts[(int)$r['construction_company_id']] as $c):?><div class="team-contact-row"><strong><?=e($c['name'])?></strong><span><?=e($c['title']?:'—')?></span><?php if($c['phone']):?><a href="tel:<?=e(preg_replace('/\D+/','',$c['phone']))?>"><?=e($c['phone'])?></a><?php endif;?><?php if($c['email']):?><a href="mailto:<?=e($c['email'])?>"><?=e($c['email'])?></a><?php endif;?></div><?php endforeach;?><?php endif;?></div>
-<h3>Vendor Notes</h3><p><?=nl2br(e($r['vendor_notes']?:'No vendor notes.'))?></p>
-<h3>Change Assignment</h3>
-<form method="post" class="form-grid assignment-edit-form">
-<input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="update_assignment"><input type="hidden" name="assignment_id" value="<?=$r['id']?>">
-<div class="form-full"><label>Trade — Company</label><select name="vendor_trade_choice" class="vendor-trade-choice" required><?php foreach($companies as $c):?><option value="<?=$c['id']?>:<?=$c['trade_id']?>" data-company="<?=e($c['company_name'])?>" data-contact="<?=e($c['display_contact'])?>" data-phone="<?=e($c['display_phone'])?>" data-email="<?=e($c['display_email'])?>" <?=$c['id']==$r['construction_company_id'] && strcasecmp($c['trade_name'],$r['vendor_trade'])===0?'selected':''?>><?=e($c['trade_name'].' — '.$c['company_name'])?></option><?php endforeach;?></select></div>
-<div><label>Company</label><input class="assign-company-display" type="text" readonly></div><div><label>Contact</label><input class="assign-contact-display" type="text" readonly></div><div><label>Phone</label><input class="assign-phone-display" type="text" readonly></div><div><label>Email</label><input class="assign-email-display" type="text" readonly></div>
-<div class="form-full"><label>Notes</label><textarea name="notes"><?=e($r['notes'])?></textarea></div><div class="form-full"><button class="primary">Save Assignment</button></div>
-</form>
+<?php if(dev_is_super()):?>
 <div class="actions project-team-detail-actions"><a class="btn btn-secondary" href="vendor_profile.php?id=<?=$r['construction_company_id']?>">Vendor Profile</a><form method="post" onsubmit="return confirm('Remove this Project Team assignment?');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="remove_assignment"><input type="hidden" name="assignment_id" value="<?=$r['id']?>"><button class="btn btn-danger" type="submit">Remove From Project</button></form></div>
+<?php endif;?>
 </div></div>
 <?php endforeach;?>
 
 <?php foreach($projectContacts as $contact):?>
-<div class="dev-modal" id="contact-info-<?=$contact['id']?>" hidden><div class="dev-modal-panel vendor-info-modal"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button><h2><?=e($contact['role_title'].' | '.($contact['organization_name']?:$contact['contact_name']))?></h2><div class="detail-grid project-team-detail-grid"><div><strong>Role</strong><p><?=e($contact['role_title'])?></p></div><div><strong>Organization</strong><p><?=e($contact['organization_name']?:'—')?></p></div><div><strong>Contact</strong><p><?=e($contact['contact_name']?:'—')?></p></div><div><strong>Phone</strong><p><?php if($contact['phone']):?><a href="tel:<?=e(preg_replace('/\D+/','',$contact['phone']))?>"><?=e(project_team_phone_format((string)$contact['phone']))?></a><?php else:?>—<?php endif;?></p></div><div><strong>Email</strong><p><?php if($contact['email']):?><a href="mailto:<?=e($contact['email'])?>"><?=e($contact['email'])?></a><?php else:?>—<?php endif;?></p></div><div><strong>Address</strong><p><?=nl2br(e($contact['address']?:'—'))?></p></div></div><h3>Notes</h3><p><?=nl2br(e($contact['notes']?:'No notes.'))?></p><?php if(dev_is_super()):?><form method="post" onsubmit="return confirm('Remove this project contact?');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="remove_project_contact"><input type="hidden" name="contact_id" value="<?=$contact['id']?>"><button class="btn btn-danger" type="submit">Remove From Project</button></form><?php endif;?></div></div>
+<div class="dev-modal project-team-detail-modal" id="contact-info-<?=$contact['id']?>" hidden><div class="dev-modal-panel vendor-info-modal"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button><h2><?=e($contact['role_title'].' | '.($contact['organization_name']?:$contact['contact_name']))?></h2><div class="detail-grid project-team-detail-grid"><div><strong>Role</strong><p><?=e($contact['role_title'])?></p></div><div><strong>Organization</strong><p><?=e($contact['organization_name']?:'—')?></p></div><div><strong>Contact</strong><p><?=e($contact['contact_name']?:'—')?></p></div><div><strong>Phone</strong><p><?php if($contact['phone']):?><a href="tel:<?=e(preg_replace('/\D+/','',$contact['phone']))?>"><?=e(project_team_phone_format((string)$contact['phone']))?></a><?php else:?>—<?php endif;?></p></div><div><strong>Email</strong><p><?php if($contact['email']):?><a href="mailto:<?=e($contact['email'])?>"><?=e($contact['email'])?></a><?php else:?>—<?php endif;?></p></div><div><strong>Address</strong><p><?=nl2br(e($contact['address']?:'—'))?></p></div></div><h3>Notes</h3><p><?=nl2br(e($contact['notes']?:'No notes.'))?></p><?php if(dev_is_super()):?><form method="post" onsubmit="return confirm('Remove this project contact?');"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="remove_project_contact"><input type="hidden" name="contact_id" value="<?=$contact['id']?>"><button class="btn btn-danger" type="submit">Remove From Project</button></form><?php endif;?></div></div>
 <?php endforeach;?>
 
 <?php if(dev_is_super()&&$projectContactsReady):?><div class="dev-modal" id="contact-modal" hidden><div class="dev-modal-panel"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button><h2>Add Project Contact</h2><form method="post" class="form-grid"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="add_project_contact"><div><label>Project Role</label><input name="role_title" list="project-contact-roles" maxlength="150" required placeholder="Project Architect"><datalist id="project-contact-roles"><option value="Project Architect"><option value="Project Engineer"><option value="Civil Engineer"><option value="Structural Engineer"><option value="Fire Marshal"><option value="City Inspector"><option value="Building Inspector"><option value="Owner Representative"><option value="Utility Representative"></datalist></div><div><label>Organization / Agency</label><input name="organization_name" maxlength="190" placeholder="City of ..."></div><div><label>Contact Name</label><input name="contact_name" maxlength="190"></div><div><label>Phone</label><input name="phone" type="tel" inputmode="numeric" maxlength="12" placeholder="XXX-XXX-XXXX" data-project-contact-phone></div><div><label>Email</label><input name="email" type="email" maxlength="190"></div><div><label>Address</label><input name="address"></div><div class="form-full"><label>Notes</label><textarea name="notes"></textarea></div><div class="form-full actions"><button type="button" class="btn btn-secondary" data-close-modal>Cancel</button><button type="submit" class="primary">Add Project Contact</button></div></form></div></div><?php endif;?>
 
-<div class="dev-modal" id="assign-modal" hidden><div class="dev-modal-panel"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button><h2>Assign Project Team</h2><form method="post" class="form-grid assignment-edit-form" id="assign-project-team-form"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="assign"><div class="form-full"><label>Trade — Company</label><select name="vendor_trade_choice" class="vendor-trade-choice" required><option value="">Choose a trade and company...</option><?php foreach($companies as $c):?><option value="<?=$c['id']?>:<?=$c['trade_id']?>" data-company="<?=e($c['company_name'])?>" data-contact="<?=e($c['display_contact'])?>" data-phone="<?=e($c['display_phone'])?>" data-email="<?=e($c['display_email'])?>"><?=e($c['trade_name'].' — '.$c['company_name'])?></option><?php endforeach;?></select></div><div><label>Company</label><input class="assign-company-display" type="text" readonly></div><div><label>Contact</label><input class="assign-contact-display" type="text" readonly></div><div><label>Phone</label><input class="assign-phone-display" type="text" readonly></div><div><label>Email</label><input class="assign-email-display" type="text" readonly></div><div class="form-full"><label>Notes <span class="muted">(optional)</span></label><textarea name="notes"></textarea></div><div class="form-full"><button class="primary">Assign Project Team</button></div></form></div></div>
+<?php if(dev_is_super()):?><div class="dev-modal" id="assign-modal" hidden><div class="dev-modal-panel"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button><h2>Assign Project Team</h2><form method="post" class="form-grid assignment-edit-form" id="assign-project-team-form"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><input type="hidden" name="project_id" value="<?=$projectId?>"><input type="hidden" name="action" value="assign"><div class="form-full"><label>Trade — Company</label><select name="vendor_trade_choice" class="vendor-trade-choice" required><option value="">Choose a trade and company...</option><?php foreach($companies as $c):?><option value="<?=$c['id']?>:<?=$c['trade_id']?>" data-company="<?=e($c['company_name'])?>" data-contact="<?=e($c['display_contact'])?>" data-phone="<?=e($c['display_phone'])?>" data-email="<?=e($c['display_email'])?>"><?=e($c['trade_name'].' — '.$c['company_name'])?></option><?php endforeach;?></select></div><div><label>Company</label><input class="assign-company-display" type="text" readonly></div><div><label>Contact</label><input class="assign-contact-display" type="text" readonly></div><div><label>Phone</label><input class="assign-phone-display" type="text" readonly></div><div><label>Email</label><input class="assign-email-display" type="text" readonly></div><div class="form-full"><label>Notes <span class="muted">(optional)</span></label><textarea name="notes"></textarea></div><div class="form-full"><button class="primary">Assign Project Team</button></div></form></div></div><?php endif;?>
+<script src="assets/project-team-notes.js?v=20260730-1" defer></script>
 <script>
 (function(){
   var areaButtons=document.querySelectorAll('[data-team-area]'),areaPanels=document.querySelectorAll('[data-team-panel]');

@@ -65,7 +65,7 @@
     root.querySelector('[data-gp-remaining]').textContent = Number(summary.gp_percent_remaining).toFixed(2) + '%';
     root.querySelector('[data-lp-subscribed]').textContent = money.format(summary.lp_units_subscribed);
     root.querySelector('[data-lp-remaining]').textContent = money.format(summary.lp_units_remaining);
-    root.querySelector('[data-gp-progress]').style.width = Math.min(100, Number(summary.gp_percent)) + '%';
+    root.querySelector('[data-gp-progress]').value = Math.min(100, Number(summary.gp_percent));
     root.querySelector('[data-lp-total-units]').value = Number(summary.lp_total_units).toFixed(2);
     root.querySelector('[data-gp-list]').innerHTML = data.gp.length
       ? data.gp.map(investor => investorCard(investor, 'GP')).join('')

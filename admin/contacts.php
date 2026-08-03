@@ -143,7 +143,7 @@ function send_contact_template(array $contact, string $recordType, int $contactI
     $requires = (int)($template['requires_acceptance'] ?? 0) === 1;
     $token = bin2hex(random_bytes(32));
     $tokenHash = hash('sha256', $token);
-    $acceptLink = $requires ? app_public_url('accept-agreement.php?token='.rawurlencode($token)) : '';
+    $acceptLink = $requires ? app_public_url('helpers/accept-agreement.php?token='.rawurlencode($token)) : '';
     $subject = str_replace(['{{name}}','{{project}}'], [$contact['full_name'],$entity['name']], (string)$template['email_subject']);
     $text = str_replace(['{{name}}','{{project}}','{{accept_link}}'], [$contact['full_name'],$entity['name'],$acceptLink], (string)$template['email_body']);
     $html = nl2br(e($text));
@@ -345,6 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existing=array_map('intval',$existingStmt->fetchAll(PDO::FETCH_COLUMN));
                 $toAdd=array_diff($selectedProjects,$existing);
                 $toRemove=array_diff($existing,$selectedProjects);
+                if(partner_role())$toRemove=[];
                 db()->beginTransaction();
                 foreach($toAdd as $opportunityId){
                     db()->prepare('INSERT IGNORE INTO contact_project_interests(record_type,record_id,investment_opportunity_id,status,interest_level,created_by_admin_id) VALUES(?,?,?,?,?,?)')->execute([$recordType,$id,$opportunityId,'new','warm',admin_user()['id']??null]);
@@ -552,20 +553,20 @@ usort($contacts, static fn(array $a, array $b): int => strcmp((string)$b['submit
 $inquiryCount = (int)db()->query('SELECT COUNT(*) FROM leads')->fetchColumn()
     + (int)db()->query('SELECT COUNT(*) FROM contact_inquiries')->fetchColumn();
 $documentTemplates = eligible_document_templates();
-$contactOpportunities = db()->query("SELECT id, project_name FROM investment_opportunities WHERE is_visible=1 ORDER BY display_order, project_name")->fetchAll();
+$requestedProjectId=(int)($_GET['project_id']??0);$contactOpportunityStatement=db()->prepare("SELECT id,project_name FROM investment_opportunities WHERE is_visible=1 OR id=? ORDER BY display_order,project_name");$contactOpportunityStatement->execute([$requestedProjectId]);$contactOpportunities=$contactOpportunityStatement->fetchAll();
 $relationshipOwners = db()->query("SELECT id,full_name FROM admin_users WHERE is_active=1 ORDER BY full_name")->fetchAll();
 $interestsInstalled = contact_project_interests_ready();
 $extendedFieldsInstalled = contact_extended_fields_ready();
 $projectFilter=(int)($_GET['project']??0);
 $deliveryStmt = db()->prepare("SELECT d.*, COALESCE(d.investment_opportunity_id, dt.investment_opportunity_id) AS delivery_opportunity_id, COALESCE(o.project_name, dto.project_name, p.project_name) AS project_name FROM document_deliveries d LEFT JOIN document_templates dt ON dt.id=d.template_id LEFT JOIN projects p ON p.id=d.project_id LEFT JOIN investment_opportunities o ON o.id=d.investment_opportunity_id LEFT JOIN investment_opportunities dto ON dto.id=dt.investment_opportunity_id WHERE ((?='lead' AND d.lead_id=?) OR (?='inquiry' AND d.inquiry_id=?)) ORDER BY d.sent_at DESC");
 ?>
-<div class="admin-page-head"><div><h1>Contacts &amp; Relationships</h1><p>Manage contact information, investment details, and projects of interest.</p></div><button type="button" class="primary" data-admin-modal-open="add-contact-modal">Add Contact</button></div>
+<div class="admin-page-head"><div><h1>CRM</h1><p>Manage relationship information, investment details, and projects of interest.</p></div><button type="button" class="primary" data-admin-modal-open="add-contact-modal">Add CRM Record</button></div>
 <?php if ($message): ?><div class="status success"><?=e($message)?></div><?php endif; ?>
 <?php if ($error): ?><div class="status error"><?=e($error)?></div><?php endif; ?>
 <?php if(!$interestsInstalled):?><div class="status error">Projects of Interest is unavailable because the required database table is missing. Contact the Super Admin to run the current database installer.</div><?php endif;?>
 <?php if(!$extendedFieldsInstalled):?><div class="status error">Additional contact fields are unavailable because the required database table is missing. Contact the Super Admin to run the current database installer.</div><?php endif;?>
 <div class="admin-lead-toolbar admin-contact-toolbar">
-    <div class="admin-search-form"><input id="contact-search" type="search" placeholder="Search contacts as you type…" autocomplete="off"></div>
+    <div class="admin-search-form"><input id="contact-search" type="search" placeholder="Search CRM records as you type…" autocomplete="off"></div>
     <select id="contact-status-filter" aria-label="Filter contacts by status"><option value="">Status:</option><?php foreach($leadStatusOptions as $key=>$label):?><option value="<?=e($key)?>"><?=e($label)?></option><?php endforeach;?></select>
     <select id="contact-project-filter" aria-label="Filter contacts by project"><option value="">Project Interested In:</option><?php foreach($contactOpportunities as $opportunity):?><option value="<?=(int)$opportunity['id']?>"><?=e($opportunity['project_name'])?></option><?php endforeach;?></select>
 </div>
@@ -586,6 +587,7 @@ $deliveryStmt = db()->prepare("SELECT d.*, COALESCE(d.investment_opportunity_id,
     $panelId = 'contact-' . $recordType . '-' . $recordId;
     $newsletterSubscriber = contact_newsletter_subscriber((string)($r['email'] ?? ''));
     $projectInterests=contact_project_interest_rows($recordType,$recordId);
+    $recordProjectIds=array_map('intval',array_column($projectInterests,'investment_opportunity_id'));if(!$isLead&&(int)($r['investment_opportunity_id']??0)>0)$recordProjectIds[]=(int)$r['investment_opportunity_id'];$recordProjectIds=array_values(array_unique($recordProjectIds));
     $searchFields = [$r['full_name'] ?? '', $r['email'] ?? '', $r['phone'] ?? '', $r['status'] ?? '', 'inquiry'];
     if ($isLead) {
         $searchFields[] = $r['source_name'] ?? '';
@@ -605,7 +607,7 @@ $deliveryStmt = db()->prepare("SELECT d.*, COALESCE(d.investment_opportunity_id,
     }
     foreach($projectInterests as $interestRow)$searchFields[]=$interestRow['project_name'].' '.$interestRow['status'].' '.$interestRow['interest_level'];
 ?>
-<article class="admin-compact-record" data-contact-key="<?=e($recordType.'-'.$recordId)?>" data-status="<?=e((string)$r['status'])?>" data-project-ids="<?=e(implode(',',array_map('intval',array_column($projectInterests,'investment_opportunity_id'))))?>" data-search-text="<?=e(strtolower(implode(' ', array_map('strval', $searchFields))))?>">
+<article class="admin-compact-record" data-contact-key="<?=e($recordType.'-'.$recordId)?>" data-status="<?=e((string)$r['status'])?>" data-project-ids="<?=e(implode(',',$recordProjectIds))?>" data-search-text="<?=e(strtolower(implode(' ', array_map('strval', $searchFields))))?>">
     <header class="admin-compact-record__summary admin-contact-summary">
         <button class="admin-expand-button" type="button" aria-expanded="false" aria-controls="<?=e($panelId)?>" data-accordion-button><span class="admin-expand-icon">+</span><span>Details</span></button>
         <div class="admin-project-badges" data-project-summary title="<?=e(implode(', ',array_column($projectInterests,'project_name')))?>">
@@ -711,9 +713,9 @@ $deliveryStmt = db()->prepare("SELECT d.*, COALESCE(d.investment_opportunity_id,
     </div>
 </article>
 <?php endforeach; ?>
-<?php if (!$contacts): ?><div class="admin-empty-state">No contacts found.</div><?php endif; ?>
+<?php if (!$contacts): ?><div class="admin-empty-state">No CRM records found.</div><?php endif; ?>
 </div>
-<div class="admin-pagination-footer admin-contacts-pagination-footer"><strong id="contact-total-label">TOTAL CONTACTS IN SYSTEM: <?=$inquiryCount?></strong><nav class="admin-pagination" id="contact-pagination" aria-label="Contacts pagination"></nav></div>
+<div class="admin-pagination-footer admin-contacts-pagination-footer"><strong id="contact-total-label">TOTAL CRM RECORDS: <?=$inquiryCount?></strong><nav class="admin-pagination" id="contact-pagination" aria-label="CRM pagination"></nav></div>
 <div class="admin-modal" id="add-contact-modal" hidden role="dialog" aria-modal="true" aria-labelledby="add-contact-modal-title">
     <div class="admin-modal-dialog admin-modal-dialog-wide">
         <header><h2 id="add-contact-modal-title">Add Contact</h2><button type="button" aria-label="Close add contact" data-admin-modal-close>&times;</button></header>
@@ -971,6 +973,7 @@ document.addEventListener('DOMContentLoaded', function () {
             button.addEventListener('click', function () {
                 var projectId = button.dataset.projectId;
                 var existing = form.querySelector('input[data-selected-project-input][value="' + CSS.escape(projectId) + '"]');
+                if(existing && document.body.classList.contains('admin-partner-role')) return;
                 if (existing) {
                     existing.remove();
                     button.classList.remove('is-selected');
@@ -1015,6 +1018,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var contactTotal = document.getElementById('contact-total-label');
     var contactPage = 1;
     var contactsPerPage = 25;
+    var requestedProject = new URLSearchParams(window.location.search).get('project_id');
+    if(requestedProject && contactProject.querySelector('option[value="'+CSS.escape(requestedProject)+'"]')) contactProject.value=requestedProject;
     function renderContacts() {
         var q = (contactSearch.value || '').trim().toLowerCase();
         var status = contactStatus.value;
@@ -1034,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', function () {
             button.addEventListener('click',function(){contactPage=item[1];renderContacts();document.getElementById('contact-list').scrollIntoView({behavior:'smooth',block:'start'});});
             contactPager.appendChild(button);
         });
-        contactTotal.textContent = 'TOTAL CONTACTS IN SYSTEM: ' + contactRows.length + (filtered.length !== contactRows.length ? ' · SHOWING ' + filtered.length : '');
+        contactTotal.textContent = 'TOTAL CRM RECORDS: ' + contactRows.length + (filtered.length !== contactRows.length ? ' · SHOWING ' + filtered.length : '');
     }
     [contactSearch,contactStatus,contactProject].forEach(function(control){
         control.addEventListener(control.tagName==='INPUT'?'input':'change',function(){contactPage=1;renderContacts();});

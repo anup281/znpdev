@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../../includes/workspace_bootstrap.php';
+require_once __DIR__ . '/../../includes/storage.php';
 $workspaceContext = znp_workspace_bootstrap('construction', [
     'login_url' => '/admin/login.php',
     'return_key' => 'dev_return',

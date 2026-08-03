@@ -217,7 +217,7 @@ require __DIR__.'/_header.php';
         <div class="status success">The one-time export link is ready.</div>
         <p><a class="primary admin-small-button" href="<?=e($exportUrl)?>" rel="noreferrer">Download SQL Export</a></p>
         <label>One-time URL</label>
-        <input type="text" readonly value="<?=e($exportUrl)?>" onclick="this.select()" style="width:100%">
+        <input class="znp-field-full" type="text" readonly value="<?=e($exportUrl)?>" onclick="this.select()">
         <p class="admin-help-text">Copy this URL for the authorized downloader. Opening it consumes the link.</p>
     <?php else: ?>
         <form method="post" onsubmit="return confirm('Create a one-time link for a complete production database export?')">
