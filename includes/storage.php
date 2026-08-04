@@ -36,6 +36,53 @@ function znp_storage_local_path(string $path): string
     return dirname(__DIR__) . '/' . znp_storage_key($path);
 }
 
+function znp_storage_temp_directory(): string
+{
+    $directory=dirname(__DIR__).'/tmp';
+    if(!is_dir($directory)&&!mkdir($directory,0775,true))throw new RuntimeException('The temporary upload folder could not be created.');
+    if(!is_writable($directory))throw new RuntimeException('The temporary upload folder is not writable.');
+    return $directory;
+}
+
+function znp_storage_temp_path(string $extension=''): string
+{
+    $extension=strtolower(preg_replace('/[^a-z0-9]/i','',$extension)??'');
+    return znp_storage_temp_directory().'/upload-'.bin2hex(random_bytes(20)).($extension!==''?'.'.$extension:'');
+}
+
+function znp_storage_remove_temp_file(string $path): void
+{
+    $directory=rtrim(str_replace('\\','/',znp_storage_temp_directory()),'/').'/';$normalized=str_replace('\\','/',$path);
+    if(!str_starts_with($normalized,$directory)||dirname($normalized)!==rtrim($directory,'/'))throw new InvalidArgumentException('Invalid temporary upload path.');
+    if(is_file($normalized)&&!@unlink($normalized))throw new RuntimeException('The temporary upload file could not be removed.');
+}
+
+function znp_storage_store_uploaded_file(string $path,string $uploadedFile,string $extension,string $contentType='application/octet-stream'): void
+{
+    $key=znp_storage_key($path);
+    if(znp_storage_uses_s4()){
+        $temporary=znp_storage_temp_path($extension);
+        if(!move_uploaded_file($uploadedFile,$temporary))throw new RuntimeException('The uploaded file could not be staged.');
+        try{znp_storage_put_file($key,$temporary,$contentType);}finally{znp_storage_remove_temp_file($temporary);}
+        return;
+    }
+    $destination=znp_storage_local_path($key);if(!is_dir(dirname($destination))&&!mkdir(dirname($destination),0775,true))throw new RuntimeException('The upload folder is not writable.');
+    if(!move_uploaded_file($uploadedFile,$destination))throw new RuntimeException('The uploaded file could not be saved.');
+}
+
+function znp_storage_store_generated_file(string $path,string $contents,string $extension,string $contentType='application/octet-stream'): void
+{
+    $key=znp_storage_key($path);
+    if(znp_storage_uses_s4()){
+        $temporary=znp_storage_temp_path($extension);
+        if(file_put_contents($temporary,$contents,LOCK_EX)===false)throw new RuntimeException('The generated upload could not be staged.');
+        try{znp_storage_put_file($key,$temporary,$contentType);}finally{znp_storage_remove_temp_file($temporary);}
+        return;
+    }
+    $destination=znp_storage_local_path($key);if(!is_dir(dirname($destination))&&!mkdir(dirname($destination),0775,true))throw new RuntimeException('The upload folder is not writable.');
+    if(file_put_contents($destination,$contents,LOCK_EX)===false)throw new RuntimeException('The generated upload could not be saved.');
+}
+
 function znp_storage_local_paths(string $path): array
 {
     $key = znp_storage_key($path);

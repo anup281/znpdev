@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Receipt Uploader">
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="#0b2340"/>
+  <path fill="#fff" d="M112 249 256 116l144 133-28 31-22-20v140H162V260l-22 20-28-31Zm117 151h54v-91h-54v91Z"/>
+</svg>

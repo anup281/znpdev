@@ -2,9 +2,11 @@
 require_once __DIR__ . '/bootstrap.php';
 $managementProperties=manage_properties();
 $managementActivePropertyId=manage_active_property_id();
+$managementActiveProperty=null;foreach($managementProperties as $managementPropertyOption)if((int)$managementPropertyOption['id']===$managementActivePropertyId){$managementActiveProperty=$managementPropertyOption;break;}
+$managementShowsBankDeposits=!$managementActiveProperty||!array_key_exists('participates_bank_deposits',$managementActiveProperty)||!empty($managementActiveProperty['participates_bank_deposits']);
 $managementReturnParams=$_GET;unset($managementReturnParams['property_id']);
 $managementReturnTo=basename((string)($_SERVER['PHP_SELF']??'index.php')).($managementReturnParams?'?'.http_build_query($managementReturnParams):'');
-?><?php znp_workspace_document_start('ZNP Management', 'management-body', '/manage/assets/manage.css', znp_asset_version().'-quarterlyfees28'); ?>
+?><?php znp_workspace_document_start('ZNP Management', 'management-body', '/manage/assets/manage.css', znp_asset_version().'-bank-participation38'); ?>
 <header class="management-top admin-top znp-workspace-top">
   <?php znp_render_workspace_brand('Management', '/manage/', 'ZNP Management Dashboard', 'management-brand admin-brand'); ?>
   <div class="management-mobile-header-icons"><?php znp_render_workspace_icons('management'); ?></div>
@@ -12,7 +14,7 @@ $managementReturnTo=basename((string)($_SERVER['PHP_SELF']??'index.php')).($mana
     <summary aria-label="Open management menu"><span class="management-native-menu-bars admin-native-menu-bars" aria-hidden="true"><i></i><i></i><i></i></span></summary>
     <div class="management-native-menu-panel admin-native-menu-panel">
       <span class="management-native-main admin-native-main">Management</span>
-      <a class="management-native-sub admin-native-sub <?=manage_nav_active(['bank_deposits.php'])?>" href="<?=manage_e(app_url('/manage/bank_deposits.php'))?>">Bank Deposits</a>
+      <?php if($managementShowsBankDeposits):?><a class="management-native-sub admin-native-sub <?=manage_nav_active(['bank_deposits.php'])?>" href="<?=manage_e(app_url('/manage/bank_deposits.php'))?>">Bank Deposits</a><?php endif;?>
       <a class="management-native-sub admin-native-sub <?=manage_nav_active(['month_end.php'])?>" href="<?=manage_e(app_url('/manage/month_end.php'))?>">Month End</a>
       <a class="management-native-sub admin-native-sub <?=manage_nav_active(['receipts.php'])?>" href="<?=manage_e(app_url('/manage/receipts.php'))?>">Receipts</a>
       <?php if(manage_is_admin()):?>
@@ -26,7 +28,7 @@ $managementReturnTo=basename((string)($_SERVER['PHP_SELF']??'index.php')).($mana
   </details>
   <button class="management-menu-toggle" type="button" aria-label="Open management menu" aria-expanded="false" aria-controls="management-nav"><span></span><span></span><span></span></button>
   <nav id="management-nav" class="znp-workspace-nav" aria-label="Management navigation">
-    <a class="<?=manage_nav_active(['bank_deposits.php'])?>" href="<?=manage_e(app_url('/manage/bank_deposits.php'))?>">Bank Deposits</a>
+    <?php if($managementShowsBankDeposits):?><a class="<?=manage_nav_active(['bank_deposits.php'])?>" href="<?=manage_e(app_url('/manage/bank_deposits.php'))?>">Bank Deposits</a><?php endif;?>
     <a class="<?=manage_nav_active(['month_end.php'])?>" href="<?=manage_e(app_url('/manage/month_end.php'))?>">Month End</a>
     <a class="<?=manage_nav_active(['receipts.php'])?>" href="<?=manage_e(app_url('/manage/receipts.php'))?>">Receipts</a>
     <?php if(manage_is_admin()):?>

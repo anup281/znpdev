@@ -71,24 +71,27 @@ function manage_month_end_schema_ready(): bool {
     static $ready=null;if($ready!==null)return $ready;
     try{
         $restaurant=db()->query("SHOW COLUMNS FROM management_properties LIKE 'has_restaurant'")->fetchColumn();
+        $pmsSystem=db()->query("SHOW COLUMNS FROM management_properties LIKE 'pms_system'")->fetchColumn();
         $suiteTaxFrequency=db()->query("SHOW COLUMNS FROM management_properties LIKE 'suite_shop_tax_frequency'")->fetchColumn();
         $bank=db()->query("SHOW COLUMNS FROM management_properties LIKE 'bank_account_number'")->fetchColumn();
         $rooms=db()->query("SHOW COLUMNS FROM management_month_end_submissions LIKE 'rooms_occupied'")->fetchColumn();
         $stateTaxAdjustments=db()->query("SHOW COLUMNS FROM management_month_end_submissions LIKE 'state_tax_adjustments'")->fetchColumn();
         $cityTaxAdjustments=db()->query("SHOW COLUMNS FROM management_month_end_submissions LIKE 'city_tax_adjustments'")->fetchColumn();
+        $banquetTax=db()->query("SHOW COLUMNS FROM management_month_end_submissions LIKE 'banquet_tax'")->fetchColumn();
         $submissions=db()->query("SHOW TABLES LIKE 'management_month_end_submissions'")->fetchColumn();
         $files=db()->query("SHOW TABLES LIKE 'management_month_end_files'")->fetchColumn();
         $taxStatuses=db()->query("SHOW TABLES LIKE 'management_month_end_tax_statuses'")->fetchColumn();
-        $ready=(bool)$restaurant&&(bool)$suiteTaxFrequency&&(bool)$bank&&(bool)$rooms&&(bool)$stateTaxAdjustments&&(bool)$cityTaxAdjustments&&(bool)$submissions&&(bool)$files&&(bool)$taxStatuses;
+        $ready=(bool)$restaurant&&(bool)$pmsSystem&&(bool)$suiteTaxFrequency&&(bool)$bank&&(bool)$rooms&&(bool)$stateTaxAdjustments&&(bool)$cityTaxAdjustments&&(bool)$banquetTax&&(bool)$submissions&&(bool)$files&&(bool)$taxStatuses;
     }catch(Throwable $e){$ready=false;}
     return $ready;
 }
 function manage_month_end_values(array $source,bool $restaurant,bool $strict=true): array {
     $values=[];
-    foreach(['rooms_occupied','rooms_available'] as $field){$raw=trim((string)($source[$field]??''));if($raw==='')$raw='0';if(!ctype_digit($raw))throw new RuntimeException('Rooms Occupied and Rooms Available must be whole numbers.');$values[$field]=(int)$raw;}
-    $fields=['room_revenue','suite_shop_revenue','total_revenue','state_tax','state_tax_adjustments','city_tax','city_tax_adjustments','sales_tax'];
+    foreach(['rooms_available','rooms_occupied'] as $field){$raw=trim((string)($source[$field]??''));if($raw==='')$raw='0';if(!ctype_digit($raw))throw new RuntimeException('Total Rooms Available and Total Rooms Sold must be whole numbers.');$values[$field]=(int)$raw;}
+    $fields=['room_revenue','suite_shop_revenue','total_revenue','state_tax','state_tax_adjustments','city_tax','city_tax_adjustments'];
     if($restaurant)$fields=array_merge($fields,['liquor_net_sales','beer_net_sales','wine_net_sales','taxable_sales_mix_bev_sales_tax']);
     foreach($fields as $field){$raw=str_replace([',','$',' '],'',(string)($source[$field]??''));if($raw==='')$raw='0';if(!is_numeric($raw)||(float)$raw<0)throw new RuntimeException('Enter valid non-negative dollar amounts.');$values[$field]=number_format((float)$raw,2,'.','');}
+    $values['sales_tax']=number_format((float)$values['suite_shop_revenue']*0.0825,2,'.','');
     foreach(['liquor_net_sales','beer_net_sales','wine_net_sales','taxable_sales_mix_bev_sales_tax'] as $field)if(!isset($values[$field]))$values[$field]='0.00';
     return $values;
 }
@@ -102,7 +105,7 @@ function manage_save_month_end_values(int $propertyId,int $year,int $month,array
 }
 function manage_receipts_schema_ready(): bool {
     static $ready=null;if($ready!==null)return $ready;
-    try{$ready=(bool)db()->query("SHOW TABLES LIKE 'management_receipt_periods'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_files'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_receipt_files LIKE 'receipt_group'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_transactions'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_analysis_runs'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_categories'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_receipt_transactions LIKE 'analysis_run_id'")->fetchColumn();}
+    try{$ready=(bool)db()->query("SHOW TABLES LIKE 'management_receipt_periods'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_files'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_receipt_files LIKE 'receipt_group'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_transactions'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_analysis_runs'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_receipt_categories'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_receipt_transactions LIKE 'analysis_run_id'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_receipt_transactions LIKE 'receipt_found'")->fetchColumn();}
     catch(Throwable $e){$ready=false;}return $ready;
 }
 function manage_receipt_payments_schema_ready(): bool {
@@ -177,12 +180,12 @@ function manage_management_fee_records_schema_ready(): bool {
 }
 function manage_bank_deposits_schema_ready(): bool {
     static $ready=null;if($ready!==null)return $ready;
-    try{$ready=(bool)db()->query("SHOW TABLES LIKE 'management_bank_deposit_records'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_bank_deposit_records LIKE 'upload_group'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_bank_deposit_files'")->fetchColumn();}
+    try{$ready=(bool)db()->query("SHOW TABLES LIKE 'management_bank_deposit_records'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_bank_deposit_records LIKE 'upload_group'")->fetchColumn()&&(bool)db()->query("SHOW TABLES LIKE 'management_bank_deposit_files'")->fetchColumn()&&(bool)db()->query("SHOW COLUMNS FROM management_properties LIKE 'participates_bank_deposits'")->fetchColumn();}
     catch(Throwable $e){$ready=false;}return $ready;
 }
 function manage_store_bank_deposit_files(array $files,int $propertyId,int $year,string $uploadGroup): array {
     manage_require_s4_storage();$names=$files['name']??[];if(!is_array($names))$names=[$names];$allowed=['pdf'=>'application/pdf','xls'=>'application/vnd.ms-excel','xlsx'=>'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','csv'=>'text/csv','txt'=>'text/plain','doc'=>'application/msword','docx'=>'application/vnd.openxmlformats-officedocument.wordprocessingml.document','jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp'];$stored=[];
-    try{foreach($names as $index=>$name){$error=(int)($files['error'][$index]??UPLOAD_ERR_NO_FILE);if($error===UPLOAD_ERR_NO_FILE)continue;if($error!==UPLOAD_ERR_OK)throw new RuntimeException('One of the bank deposit files could not be uploaded.');$size=(int)($files['size'][$index]??0);if($size<1||$size>26214400)throw new RuntimeException('Each bank deposit file must be 25 MB or smaller.');$original=basename((string)$name);$ext=strtolower(pathinfo($original,PATHINFO_EXTENSION));if(!isset($allowed[$ext]))throw new RuntimeException('Bank deposit files must be PDF, Excel, CSV, TXT, Word, JPG, PNG, or WebP.');$tmp=(string)($files['tmp_name'][$index]??'');$mime=(string)(new finfo(FILEINFO_MIME_TYPE))->file($tmp);if(!in_array($ext,['xls','xlsx','doc','docx'],true)&&$mime!==$allowed[$ext])throw new RuntimeException('A bank deposit file does not match its file extension.');$path='uploads/manage/bank-deposits/'.$propertyId.'/'.$year.'/'.$uploadGroup.'/'.bin2hex(random_bytes(16)).'.'.$ext;$absolute=znp_storage_local_path($path);if(!is_dir(dirname($absolute))&&!mkdir(dirname($absolute),0775,true))throw new RuntimeException('The bank deposit upload folder is not writable.');if(!move_uploaded_file($tmp,$absolute))throw new RuntimeException('A bank deposit file could not be saved.');try{znp_storage_put_file($path,$absolute,$mime);if(znp_storage_uses_s4())znp_storage_remove_local($path);}catch(Throwable $e){znp_storage_remove_local($path);throw $e;}$stored[]=['path'=>$path,'name'=>$original,'mime'=>$mime,'size'=>$size];}}catch(Throwable $exception){foreach($stored as $file)try{znp_storage_delete((string)$file['path']);}catch(Throwable $cleanup){}throw $exception;}return $stored;
+    try{foreach($names as $index=>$name){$error=(int)($files['error'][$index]??UPLOAD_ERR_NO_FILE);if($error===UPLOAD_ERR_NO_FILE)continue;if($error!==UPLOAD_ERR_OK)throw new RuntimeException('One of the bank deposit files could not be uploaded.');$size=(int)($files['size'][$index]??0);if($size<1||$size>26214400)throw new RuntimeException('Each bank deposit file must be 25 MB or smaller.');$original=basename((string)$name);$ext=strtolower(pathinfo($original,PATHINFO_EXTENSION));if(!isset($allowed[$ext]))throw new RuntimeException('Bank deposit files must be PDF, Excel, CSV, TXT, Word, JPG, PNG, or WebP.');$tmp=(string)($files['tmp_name'][$index]??'');$mime=(string)(new finfo(FILEINFO_MIME_TYPE))->file($tmp);if(!in_array($ext,['xls','xlsx','doc','docx'],true)&&$mime!==$allowed[$ext])throw new RuntimeException('A bank deposit file does not match its file extension.');$path='uploads/manage/bank-deposits/'.$propertyId.'/'.$year.'/'.$uploadGroup.'/'.bin2hex(random_bytes(16)).'.'.$ext;znp_storage_store_uploaded_file($path,$tmp,$ext,$mime);$stored[]=['path'=>$path,'name'=>$original,'mime'=>$mime,'size'=>$size];}}catch(Throwable $exception){foreach($stored as $file)try{znp_storage_delete((string)$file['path']);}catch(Throwable $cleanup){}throw $exception;}return $stored;
 }
 function manage_recalculate_fee_year(int $propertyId,int $year): void {
     $query=db()->prepare('SELECT id,total_revenue,percent_1,percent_2 FROM management_fee_records WHERE management_property_id=? AND report_year=? ORDER BY fee_quarter,entry_date,id');$query->execute([$propertyId,$year]);$recognized=0.0;$update=db()->prepare('UPDATE management_fee_records SET fee_basis_revenue=?,fee_1=?,fee_2=?,total_fee=? WHERE id=?');
@@ -191,7 +194,7 @@ function manage_recalculate_fee_year(int $propertyId,int $year): void {
 function manage_store_fee_files(array $files,int $propertyId,int $year,int $month,string $feeType,string $category): array {
     manage_require_s4_storage();
     $names=$files['name']??[];if(!is_array($names))$names=[$names];$allowed=['txt'=>'text/plain','pdf'=>'application/pdf','xls'=>'application/vnd.ms-excel','xlsx'=>'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','csv'=>'text/csv','doc'=>'application/msword','docx'=>'application/vnd.openxmlformats-officedocument.wordprocessingml.document','jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp'];$stored=[];
-    try{foreach($names as $index=>$name){$error=(int)($files['error'][$index]??UPLOAD_ERR_NO_FILE);if($error===UPLOAD_ERR_NO_FILE)continue;if($error!==UPLOAD_ERR_OK)throw new RuntimeException('One of the fee files could not be uploaded.');$size=(int)($files['size'][$index]??0);if($size<1||$size>26214400)throw new RuntimeException('Each fee file must be 25 MB or smaller.');$original=basename((string)$name);$ext=strtolower(pathinfo($original,PATHINFO_EXTENSION));if($feeType==='management'&&$category==='records'&&$ext!=='txt')throw new RuntimeException('Manager Flash Backup files must be TXT files.');if(!isset($allowed[$ext]))throw new RuntimeException('Fee files must be TXT, PDF, Excel, CSV, Word, JPG, PNG, or WebP.');$tmp=(string)($files['tmp_name'][$index]??'');$finfo=new finfo(FILEINFO_MIME_TYPE);$mime=(string)$finfo->file($tmp);if(!in_array($ext,['xls','xlsx','doc','docx'],true)&&$mime!==$allowed[$ext])throw new RuntimeException('A fee file does not match its file extension.');$path='uploads/manage/fees/'.$feeType.'/'.$propertyId.'/'.$year.'/'.str_pad((string)$month,2,'0',STR_PAD_LEFT).'/'.$category.'/'.bin2hex(random_bytes(16)).'.'.$ext;$absolute=znp_storage_local_path($path);if(!is_dir(dirname($absolute))&&!mkdir(dirname($absolute),0775,true))throw new RuntimeException('The fee upload folder is not writable.');if(!move_uploaded_file($tmp,$absolute))throw new RuntimeException('A fee file could not be saved.');try{znp_storage_put_file($path,$absolute,$mime);if(znp_storage_uses_s4())znp_storage_remove_local($path);}catch(Throwable $e){znp_storage_remove_local($path);throw $e;}$stored[]=['path'=>$path,'name'=>$original,'mime'=>$mime,'size'=>$size];}}catch(Throwable $exception){foreach($stored as $file)try{znp_storage_delete((string)$file['path']);}catch(Throwable $cleanup){}throw $exception;}return $stored;
+    try{foreach($names as $index=>$name){$error=(int)($files['error'][$index]??UPLOAD_ERR_NO_FILE);if($error===UPLOAD_ERR_NO_FILE)continue;if($error!==UPLOAD_ERR_OK)throw new RuntimeException('One of the fee files could not be uploaded.');$size=(int)($files['size'][$index]??0);if($size<1||$size>26214400)throw new RuntimeException('Each fee file must be 25 MB or smaller.');$original=basename((string)$name);$ext=strtolower(pathinfo($original,PATHINFO_EXTENSION));if($feeType==='management'&&$category==='records'&&$ext!=='txt')throw new RuntimeException('Manager Flash Backup files must be TXT files.');if(!isset($allowed[$ext]))throw new RuntimeException('Fee files must be TXT, PDF, Excel, CSV, Word, JPG, PNG, or WebP.');$tmp=(string)($files['tmp_name'][$index]??'');$finfo=new finfo(FILEINFO_MIME_TYPE);$mime=(string)$finfo->file($tmp);if(!in_array($ext,['xls','xlsx','doc','docx'],true)&&$mime!==$allowed[$ext])throw new RuntimeException('A fee file does not match its file extension.');$path='uploads/manage/fees/'.$feeType.'/'.$propertyId.'/'.$year.'/'.str_pad((string)$month,2,'0',STR_PAD_LEFT).'/'.$category.'/'.bin2hex(random_bytes(16)).'.'.$ext;znp_storage_store_uploaded_file($path,$tmp,$ext,$mime);$stored[]=['path'=>$path,'name'=>$original,'mime'=>$mime,'size'=>$size];}}catch(Throwable $exception){foreach($stored as $file)try{znp_storage_delete((string)$file['path']);}catch(Throwable $cleanup){}throw $exception;}return $stored;
 }
 function manage_store_receipt_files(array $files,int $propertyId,int $year,int $month,string $category): array {
     manage_require_s4_storage();
@@ -205,10 +208,9 @@ function manage_store_receipt_files(array $files,int $propertyId,int $year,int $
         if(in_array($category,['statement','payment'],true)&&$ext!=='pdf')throw new RuntimeException('Statements and payments must be uploaded as PDF files.');
         if(!isset($allowed[$ext]))throw new RuntimeException('Receipt files must be PDF, Excel, CSV, Word, JPG, PNG, or WebP.');
         $tmp=(string)($files['tmp_name'][$index]??'');$finfo=new finfo(FILEINFO_MIME_TYPE);$mime=(string)$finfo->file($tmp);if(!in_array($ext,['xls','xlsx','doc','docx'],true)&&$mime!==$allowed[$ext])throw new RuntimeException('A receipt file does not match its file extension.');
-        $path='uploads/manage/receipts/'.$propertyId.'/'.$year.'/'.str_pad((string)$month,2,'0',STR_PAD_LEFT).'/'.$category.'/'.bin2hex(random_bytes(16)).'.'.$ext;$absolute=znp_storage_local_path($path);
-        if(!is_dir(dirname($absolute))&&!mkdir(dirname($absolute),0775,true))throw new RuntimeException('The receipt upload folder is not writable.');if(!move_uploaded_file($tmp,$absolute))throw new RuntimeException('A receipt file could not be saved.');
-        $emailData=null;if($category==='statement'){$emailData=file_get_contents($absolute);if($emailData===false)throw new RuntimeException('The statement PDF could not be prepared for email.');}
-        try{znp_storage_put_file($path,$absolute,$mime);if(znp_storage_uses_s4())znp_storage_remove_local($path);}catch(Throwable $e){znp_storage_remove_local($path);throw $e;}
+        $path='uploads/manage/receipts/'.$propertyId.'/'.$year.'/'.str_pad((string)$month,2,'0',STR_PAD_LEFT).'/'.$category.'/'.bin2hex(random_bytes(16)).'.'.$ext;
+        $emailData=null;if($category==='statement'){$emailData=file_get_contents($tmp);if($emailData===false)throw new RuntimeException('The statement PDF could not be prepared for email.');}
+        znp_storage_store_uploaded_file($path,$tmp,$ext,$mime);
         $stored[]=['path'=>$path,'name'=>$original,'mime'=>$mime,'size'=>$size,'data'=>$emailData];
     }}catch(Throwable $exception){foreach($stored as $file)try{znp_storage_delete((string)$file['path']);}catch(Throwable $cleanup){}throw $exception;}
     return $stored;
@@ -235,11 +237,7 @@ function manage_store_month_end_files(array $files,int $propertyId,int $year,int
         $officeExtensions=['xls','xlsx','doc','docx'];
         if(!in_array($ext,$officeExtensions,true)&&$mime!==$allowed[$ext])throw new RuntimeException('A report file does not match its file extension.');
         $path='uploads/manage/month-end/'.$propertyId.'/'.$year.'/'.str_pad((string)$month,2,'0',STR_PAD_LEFT).'/'.bin2hex(random_bytes(16)).'.'.$ext;
-        $absolute=znp_storage_local_path($path);
-        if(!is_dir(dirname($absolute))&&!mkdir(dirname($absolute),0775,true))throw new RuntimeException('The report upload folder is not writable.');
-        if(!move_uploaded_file($tmp,$absolute))throw new RuntimeException('A report file could not be saved.');
-        try{znp_storage_put_file($path,$absolute,$mime);if(znp_storage_uses_s4())znp_storage_remove_local($path);}
-        catch(Throwable $e){znp_storage_remove_local($path);throw $e;}
+        znp_storage_store_uploaded_file($path,$tmp,$ext,$mime);
         $stored[]=['path'=>$path,'name'=>$original,'mime'=>$mime,'size'=>$size];
     }}catch(Throwable $exception){
         foreach($stored as $file)try{znp_storage_delete((string)$file['path']);}catch(Throwable $cleanup){}
@@ -257,10 +255,7 @@ function manage_store_logo(array $file): ?array {
     if(!isset($allowed[$ext]))throw new RuntimeException('Upload a JPG, PNG, or WebP logo.');
     $finfo=new finfo(FILEINFO_MIME_TYPE);$mime=(string)$finfo->file((string)$file['tmp_name']);
     if($mime!==$allowed[$ext])throw new RuntimeException('The logo content does not match its file extension.');
-    $relative='uploads/manage/properties/'.bin2hex(random_bytes(16)).'.'.$ext;$absolute=znp_storage_local_path($relative);
-    if(!is_dir(dirname($absolute))&&!mkdir(dirname($absolute),0775,true))throw new RuntimeException('The logo upload folder is not writable.');
-    if(!move_uploaded_file((string)$file['tmp_name'],$absolute))throw new RuntimeException('The logo could not be saved.');
-    try{znp_storage_put_file($relative,$absolute,$mime);if(znp_storage_uses_s4())znp_storage_remove_local($relative);}
-    catch(Throwable $e){znp_storage_remove_local($relative);throw $e;}
+    $relative='uploads/manage/properties/'.bin2hex(random_bytes(16)).'.'.$ext;
+    znp_storage_store_uploaded_file($relative,(string)$file['tmp_name'],$ext,$mime);
     return ['path'=>$relative,'mime'=>$mime];
 }

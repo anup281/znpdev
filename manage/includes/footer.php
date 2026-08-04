@@ -8,6 +8,12 @@ if(count($footerManagementProperties)===1){
 znp_render_workspace_footer('Management Portal',znp_application_version_label(),$footerUserLabel);
 ?>
 <div id="manageToastTray" class="manage-toast-tray" aria-live="polite" aria-atomic="false"></div>
+<div class="manage-file-preview-modal" data-manage-file-modal hidden>
+ <section class="manage-file-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="manageFilePreviewTitle">
+  <header><h2 id="manageFilePreviewTitle" data-manage-file-title>File Preview</h2><div><a class="manage-file-preview-download" data-manage-file-download href="#"><i class="fa-solid fa-download" aria-hidden="true"></i> Download</a><button type="button" class="manage-file-preview-close" data-manage-file-close aria-label="Close file preview"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div></header>
+  <div class="manage-file-preview-body"><iframe data-manage-file-frame title="File preview" hidden></iframe><div class="manage-file-preview-fallback" data-manage-file-fallback hidden><i class="fa-regular fa-file" aria-hidden="true"></i><h3>Preview unavailable</h3><p>This file type cannot be displayed by the browser. Use Download to review it.</p></div><div class="manage-file-preview-loading" data-manage-file-loading><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Loading preview…</span></div></div>
+ </section>
+</div>
 <script>
 (function(){
   const button=document.querySelector('.management-menu-toggle');
@@ -20,4 +26,5 @@ znp_render_workspace_footer('Management Portal',znp_application_version_label(),
 })();
 </script>
 <script src="<?=manage_e(app_url('/manage/assets/manage-toast.js'))?>?v=<?=manage_e(znp_asset_version())?>-1" defer></script>
+<script src="<?=manage_e(app_url('/manage/assets/file-preview.js'))?>?v=<?=manage_e(znp_asset_version())?>-excel-preview4" defer></script>
 <?php znp_workspace_document_end(); ?>

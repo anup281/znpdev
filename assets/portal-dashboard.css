@@ -46,6 +46,7 @@
   gap:12px;
 }
 .admin-portal-actions-three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.admin-portal-actions-two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .admin-portal-title-only .admin-portal-button{justify-content:center}
 .admin-portal-title-only .admin-portal-button i{margin-bottom:0}
 .admin-portal-title-only .admin-portal-button span{margin-top:12px}
