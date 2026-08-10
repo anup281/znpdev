@@ -12,6 +12,23 @@
     });
     document.querySelectorAll('.dev-modal').forEach(function(modal){modal.addEventListener('click',function(event){if(event.target===modal){modal.hidden=true;modal.classList.remove('is-open');document.body.classList.remove('modal-open');}});});
     document.addEventListener('click',function(event){var button=event.target.closest('[data-toggle-completed]');if(!button)return;var list=button.nextElementSibling;if(!list)return;var opening=list.hasAttribute('hidden');if(opening)list.removeAttribute('hidden');else list.setAttribute('hidden','');button.setAttribute('aria-expanded',opening?'true':'false');var arrow=button.querySelector('.toggle-arrow');if(arrow)arrow.textContent=opening?'▾':'▸';});
+    function updateWorkflowBatch(form){
+      if(!form)return;
+      var items=Array.prototype.filter.call(form.elements,function(element){return element.matches&&element.matches('[data-workflow-select]');});
+      var selected=items.filter(function(input){return input.checked;});
+      var submit=form.querySelector('[data-workflow-batch-submit]');
+      var count=form.querySelector('[data-workflow-selected-count]');
+      var selectAll=document.querySelector('[data-workflow-select-all][data-form="'+form.id+'"]');
+      if(submit)submit.disabled=selected.length===0;
+      if(count)count.textContent=String(selected.length);
+      if(selectAll){selectAll.checked=items.length>0&&selected.length===items.length;selectAll.indeterminate=selected.length>0&&selected.length<items.length;}
+    }
+    document.addEventListener('change',function(event){
+      var selectAll=event.target.closest('[data-workflow-select-all]');
+      if(selectAll){var batchForm=document.getElementById(selectAll.getAttribute('data-form'));if(batchForm){Array.prototype.forEach.call(batchForm.elements,function(element){if(element.matches&&element.matches('[data-workflow-select]'))element.checked=selectAll.checked;});updateWorkflowBatch(batchForm);}return;}
+      var item=event.target.closest('[data-workflow-select]');
+      if(item)updateWorkflowBatch(item.form);
+    });
     document.querySelectorAll('table').forEach(function(table){var heads=Array.prototype.map.call(table.querySelectorAll('thead th'),function(th){return th.textContent.trim();});table.querySelectorAll('tbody tr').forEach(function(row){Array.prototype.forEach.call(row.children,function(cell,i){if(!cell.dataset.label&&heads[i])cell.dataset.label=heads[i];});});});
     if(document.body.classList.contains('dev-documents-page')){
       document.querySelectorAll('input.znp-checkbox[name="document_ids[]"]').forEach(function(input){
@@ -35,6 +52,6 @@
         }
       }
     }
-    document.addEventListener('click',function(event){document.querySelectorAll('details[open]').forEach(function(detail){if(!detail.contains(event.target))detail.removeAttribute('open');});});
+    document.addEventListener('click',function(event){document.querySelectorAll('details[open]:not([data-budget-category]):not([data-expense-group])').forEach(function(detail){if(!detail.contains(event.target))detail.removeAttribute('open');});});
   });
 })();

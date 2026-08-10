@@ -15,7 +15,7 @@ $mobileProjectId=$projectId;
 $projectUrl=static function(string $page) use ($mobileProjectId): string {
     return $mobileProjectId>0 ? $page.'?project_id='.$mobileProjectId : 'projects.php';
 };
-?><?php znp_workspace_document_start('ZNP Construction', (string)($devBodyClass??''), 'assets/dev.css', '20260730-560'); ?>
+?><?php znp_workspace_document_start('ZNP Construction', (string)($devBodyClass??''), 'assets/dev.css', '20260809-617'); ?>
 <header class="dev-top dev-top-admin-style admin-top znp-workspace-top">
   <a class="dev-brand admin-brand znp-workspace-brand" href="index.php" aria-label="ZNP Construction Dashboard"><span>ZNP</span><strong>CONSTRUCTION</strong></a>
   <div class="dev-mobile-header-icons"><?php znp_render_workspace_icons('construction'); ?></div>
