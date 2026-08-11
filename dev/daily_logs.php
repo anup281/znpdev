@@ -273,6 +273,7 @@ $formSource=$_POST?:($editLog?:[]);
 $isEditing=(bool)$editLog;
 ?>
 
+<div class="znp-cluster-end"><a class="btn btn-secondary" href="construction_daily_logs_export.php?project_id=<?=$projectId?>">Export Daily Logs &amp; Photos</a></div>
 <?php if(isset($_GET['saved'])):?><div class="card notice-success">Daily log saved successfully.</div><?php endif;?>
 <?php if(isset($_GET['updated'])):?><div class="card notice-success">Daily log updated successfully.</div><?php endif;?>
 <?php if(isset($_GET['deleted'])):?><div class="card notice-success">Daily log deleted successfully.</div><?php endif;?>
