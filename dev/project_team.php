@@ -9,7 +9,31 @@ function project_team_phone_format(string $phone): string {
     if(strlen($digits)===11&&$digits[0]==='1')$digits=substr($digits,1);
     return strlen($digits)===10?substr($digits,0,3).'-'.substr($digits,3,3).'-'.substr($digits,6):$phone;
 }
+function project_team_allow_multiple_trade_assignments(): void {
+    $indexes=db()->query('SHOW INDEX FROM construction_project_companies')->fetchAll()?:[];$unique=[];$names=[];
+    foreach($indexes as $index){$names[(string)$index['Key_name']]=true;if((int)($index['Non_unique']??1)!==0||($index['Key_name']??'')==='PRIMARY')continue;$unique[(string)$index['Key_name']][(int)$index['Seq_in_index']]=(string)$index['Column_name'];}
+    if(!isset($names['idx_project_companies_project_company']))db()->exec('ALTER TABLE construction_project_companies ADD KEY idx_project_companies_project_company(construction_project_id,construction_company_id)');
+    foreach($unique as $name=>$columns){ksort($columns);$columns=array_values($columns);sort($columns);if($columns!==['construction_company_id','construction_project_id'])continue;if(!preg_match('/^[A-Za-z0-9_]+$/',$name))throw new RuntimeException('The Project Team uniqueness index could not be safely updated.');db()->exec('ALTER TABLE construction_project_companies DROP INDEX `'.$name.'`');}
+}
+function project_team_split_combined_trades(int $projectId): int {
+    $query=db()->prepare("SELECT * FROM construction_project_companies WHERE construction_project_id=? AND trade_role LIKE '%,%'");
+    $query->execute([$projectId]);$combined=$query->fetchAll()?:[];$created=0;
+    foreach($combined as $assignment){
+        $trades=array_values(array_unique(array_filter(array_map('trim',preg_split('/\s*,\s*/',(string)$assignment['trade_role'])?:[]))));
+        if(count($trades)<2)continue;
+        $ownsTransaction=!db()->inTransaction();if($ownsTransaction)db()->beginTransaction();
+        try{
+            db()->prepare('UPDATE construction_project_companies SET trade_role=?,updated_at=NOW() WHERE id=? AND construction_project_id=?')->execute([$trades[0],(int)$assignment['id'],$projectId]);
+            $exists=db()->prepare('SELECT id FROM construction_project_companies WHERE construction_project_id=? AND construction_company_id=? AND LOWER(TRIM(trade_role))=LOWER(TRIM(?)) LIMIT 1');
+            $copy=db()->prepare('INSERT INTO construction_project_companies(construction_project_id,construction_company_id,trade_role,project_contact_name,project_contact_phone,project_contact_email,contract_status,notes,created_at,updated_at) SELECT construction_project_id,construction_company_id,?,project_contact_name,project_contact_phone,project_contact_email,contract_status,notes,NOW(),NOW() FROM construction_project_companies WHERE id=? AND construction_project_id=?');
+            foreach(array_slice($trades,1) as $trade){$exists->execute([$projectId,(int)$assignment['construction_company_id'],$trade]);if($exists->fetchColumn())continue;$copy->execute([$trade,(int)$assignment['id'],$projectId]);$created++;}
+            if($ownsTransaction)db()->commit();
+        }catch(Throwable $exception){if($ownsTransaction&&db()->inTransaction())db()->rollBack();throw $exception;}
+    }
+    return $created;
+}
 try{$q=db()->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='construction_project_contacts'");$q->execute();$projectContactsReady=(int)$q->fetchColumn()>0;}catch(Throwable $exception){error_log('Project contacts schema check failed: '.$exception->getMessage());}
+try{project_team_allow_multiple_trade_assignments();project_team_split_combined_trades($projectId);}catch(Throwable $exception){error_log('Project Team trade split failed: '.$exception->getMessage());$error='The combined Project Team trades could not be separated. '.$exception->getMessage();}
 
 if($_SERVER['REQUEST_METHOD']==='POST')try{
     if(!csrf_check((string)($_POST['csrf']??'')))throw new RuntimeException('Session expired.');
@@ -52,6 +76,7 @@ if($_SERVER['REQUEST_METHOD']==='POST')try{
     $tradeStmt=db()->prepare("SELECT t.trade_name FROM construction_company_trades ct JOIN construction_trades t ON t.id=ct.construction_trade_id AND t.is_active=1 WHERE ct.construction_company_id=? AND ct.construction_trade_id=? AND ct.archived_at IS NULL LIMIT 1");
     $tradeStmt->execute([$cid,$tradeId]);$trade=(string)$tradeStmt->fetchColumn();
     if($trade==='')throw new RuntimeException('The selected trade is not assigned to this company.');
+    $duplicate=db()->prepare('SELECT id FROM construction_project_companies WHERE construction_project_id=? AND construction_company_id=? AND LOWER(TRIM(trade_role))=LOWER(TRIM(?)) LIMIT 1');$duplicate->execute([$projectId,$cid,$trade]);if($duplicate->fetchColumn())throw new RuntimeException('This company is already assigned to that trade on the project.');
     $notes=trim((string)($_POST['notes']??''));
     db()->prepare('INSERT INTO construction_project_companies(construction_project_id,construction_company_id,trade_role,project_contact_name,project_contact_phone,project_contact_email,contract_status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NOW(),NOW())')
         ->execute([$projectId,$cid,$trade,'','','','Active',$notes]);
@@ -76,7 +101,7 @@ $projectContacts=[];
 if($projectContactsReady){$q=db()->prepare('SELECT * FROM construction_project_contacts WHERE construction_project_id=? AND is_active=1 ORDER BY role_title,organization_name,contact_name,id');$q->execute([$projectId]);$projectContacts=$q->fetchAll();}
 $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_vendor_contacts WHERE construction_company_id=? AND is_active=1 ORDER BY is_primary DESC,name');$q->execute([$r['construction_company_id']]);$contacts[(int)$r['construction_company_id']]=$q->fetchAll();}
 ?>
-<div class="page-head project-page-actions"><div><h1>Project Team</h1><p class="muted">Choose the type of project team member you want to view.</p></div></div>
+<div class="page-head project-page-actions"><div><h1>Project Team</h1><p class="muted">Choose the type of project team member you want to view.</p></div><?php if(dev_is_super()):?><a class="btn btn-secondary" href="construction_project_team_export.php?project_id=<?=$projectId?>">Export Project Team</a><?php endif;?></div>
 <?php if(isset($_GET['saved'])):?><div class="card notice-success">Project Team assignment saved.</div><?php endif;?>
 <?php if(isset($_GET['removed'])):?><div class="card notice-success">Project Team assignment removed.</div><?php endif;?>
 <?php if(isset($_GET['contact_saved'])):?><div class="card notice-success">Project contact added.</div><?php endif;?>
@@ -84,9 +109,9 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
 <?php if($error):?><div class="card notice-error"><?=e($error)?></div><?php endif;?>
 <?php if(dev_is_super()&&!$projectContactsReady):?><div class="card notice-warning">The project contacts database table is not installed in this environment.</div><?php endif;?>
 
-<div class="project-team-area-picker" role="group" aria-label="Project Team areas"><button type="button" class="project-team-area-button" data-team-area="trades" aria-pressed="false"><span>TRADES<small>Vendors and assigned trade partners</small></span></button><button type="button" class="project-team-area-button" data-team-area="contacts" aria-pressed="false"><span>THIRD PARTY CONTACTS<small>Architects, engineers, agencies and inspectors</small></span></button></div>
+<div class="project-team-area-picker" role="group" aria-label="Project Team areas"><button type="button" class="project-team-area-button" data-team-area="trades" aria-pressed="false"><span>TRADES</span></button><button type="button" class="project-team-area-button" data-team-area="contacts" aria-pressed="false"><span>THIRD PARTY CONTACTS</span></button></div>
 
-<section class="project-team-section" data-team-panel="trades" hidden><div class="project-team-section-head"><div><h2>Trades</h2><p class="muted">Assigned project vendors organized by trade.</p></div><div class="actions no-top"><a class="btn btn-primary" href="messages.php?project_id=<?=$projectId?>&all=1">Message All</a><?php if(dev_is_super()):?><button class="btn btn-secondary" type="button" data-open-modal="assign-modal">Assign Project Team</button><?php endif;?></div></div><div class="project-team-cards">
+<section class="project-team-section" data-team-panel="trades" hidden><div class="project-team-section-head"><div class="actions no-top"><a class="btn btn-primary" href="messages.php?project_id=<?=$projectId?>&all=1">Message All</a><?php if(dev_is_super()):?><button class="btn btn-secondary" type="button" data-open-modal="assign-modal">Assign Project Team</button><?php endif;?></div></div><div class="project-team-cards">
 <?php foreach($rows as $r):
     $contact=$r['selected_contact']?:$r['primary_contact'];
     $phone=$r['selected_phone']?:($r['cell_phone']?:$r['office_phone']);
@@ -103,7 +128,7 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
 <?php if(!$rows):?><div class="card empty">No trades are assigned to this project.</div><?php endif;?>
 </div></section>
 
-<section class="project-team-section" data-team-panel="contacts" hidden><div class="project-team-section-head"><div><h2>Third Party Contacts</h2><p class="muted">Project professionals, government agencies and inspectors.</p></div><?php if(dev_is_super()&&$projectContactsReady):?><button class="btn btn-primary" type="button" data-open-modal="contact-modal">Add Contact</button><?php endif;?></div><div class="project-team-cards">
+<section class="project-team-section" data-team-panel="contacts" hidden><div class="project-team-section-head"><?php if(dev_is_super()&&$projectContactsReady):?><button class="btn btn-primary" type="button" data-open-modal="contact-modal">Add Contact</button><?php endif;?></div><div class="project-team-cards">
 <?php foreach($projectContacts as $contact):$displayName=$contact['organization_name']?:$contact['contact_name'];?>
 <article class="project-team-card" data-details-modal="contact-info-<?=$contact['id']?>" tabindex="0" role="button" aria-label="Open details for <?=e($contact['role_title'].' '.$displayName)?>">
   <div class="project-team-card-head"><h2><span><?=e(strtoupper($contact['role_title']))?></span><span class="project-team-divider">|</span><span><?=e(strtoupper($displayName))?></span></h2></div>
@@ -155,7 +180,7 @@ $contacts=[];foreach($rows as $r){$q=db()->prepare('SELECT * FROM construction_v
   var areaButtons=document.querySelectorAll('[data-team-area]'),areaPanels=document.querySelectorAll('[data-team-panel]');
   function showArea(area){areaPanels.forEach(function(panel){panel.hidden=panel.dataset.teamPanel!==area;});areaButtons.forEach(function(button){var active=button.dataset.teamArea===area;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',active?'true':'false');});}
   areaButtons.forEach(function(button){button.addEventListener('click',function(){showArea(button.dataset.teamArea);});});
-  <?php if(isset($_GET['contact_saved'])||isset($_GET['contact_removed'])):?>showArea('contacts');<?php elseif(isset($_GET['saved'])):?>showArea('trades');<?php endif;?>
+  <?php if(isset($_GET['contact_saved'])||isset($_GET['contact_removed'])):?>showArea('contacts');<?php else:?>showArea('trades');<?php endif;?>
   document.querySelectorAll('[data-project-contact-phone]').forEach(function(input){input.addEventListener('input',function(){var digits=input.value.replace(/\D/g,'').slice(0,10),parts=[];if(digits.length)parts.push(digits.slice(0,3));if(digits.length>3)parts.push(digits.slice(3,6));if(digits.length>6)parts.push(digits.slice(6,10));input.value=parts.join('-');});});
   function populate(form){var choice=form.querySelector('.vendor-trade-choice'),o=choice&&choice.options[choice.selectedIndex];[['.assign-company-display','company'],['.assign-contact-display','contact'],['.assign-phone-display','phone'],['.assign-email-display','email']].forEach(function(x){var el=form.querySelector(x[0]);if(el)el.value=o&&o.value?(o.dataset[x[1]]||''):'';});}
   document.querySelectorAll('.assignment-edit-form').forEach(function(form){var choice=form.querySelector('.vendor-trade-choice');if(choice){choice.addEventListener('change',function(){populate(form);});populate(form);}});
