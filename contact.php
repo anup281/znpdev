@@ -8,7 +8,7 @@ if(session_status()!==PHP_SESSION_ACTIVE)session_start();
 if($_SERVER['REQUEST_METHOD']!=='POST')$_SESSION['contact_form_started']=time();
 if($_SERVER['REQUEST_METHOD']==='POST'){
  if(!csrf_check($_POST['csrf_token']??'')){ $formError='Session expired. Refresh the page and try again.'; }
- else { [$spamOk,$spamMessage]=contact_spam_check($_POST); if(!$spamOk){$formError=$spamMessage;} else {
+ else { [$captchaOk,$captchaMessage]=contact_captcha_check($_POST); if(!$captchaOk){$formError=$captchaMessage;} else { [$spamOk,$spamMessage]=contact_spam_check($_POST); if(!$spamOk){$formError=$spamMessage;} else {
   $type=$_POST['subject']??'general_inquiry';
   $ref='ZNP-'.date('Ymd').'-'.strtoupper(bin2hex(random_bytes(3)));
   $stmt=db()->prepare("INSERT INTO contact_inquiries(reference_number,inquiry_type,investment_opportunity_id,full_name,company_name,email,phone,prospective_investor_type,investment_amount,message,source_page,ip_address,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -25,8 +25,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    if($mailResult['ok'])contact_activity_log('inquiry',$inquiryId,'notification_sent','Admin notification sent','Sent to '.$messageInfoEmail,null,null,date('Y-m-d H:i:s'));
    else error_log('Contact inquiry notification failed for '.$ref.': '.$mailResult['error']);
   }
- }}
+ }}}
 }
+$contactCaptcha=contact_captcha_create();
 require __DIR__.'/includes/header.php';
 ?>
 <main><?php render_public_page_header('contact','Start a Conversation','Whether you are looking to invest, develop, acquire property, or discuss your next project, we would love to hear from you.','projects-blueprint'); ?>
@@ -37,7 +38,9 @@ require __DIR__.'/includes/header.php';
 <div class="form-grid"><div class="field"><label>Email *</label><input type="email" name="email" required></div><div class="field"><label>Phone</label><input name="phone" id="contact-phone" type="tel" inputmode="tel" autocomplete="tel"></div></div>
 <div class="field"><label>What Can We Help You With?</label><select name="subject" id="subject"><option value="investment_opportunity" <?=$selectedSubject==='investment_opportunity'?'selected':''?>>Investment Opportunity</option><option value="development_opportunity" <?=$selectedSubject==='development_opportunity'?'selected':''?>>Development Services</option><option value="land_acquisition" <?=$selectedSubject==='land_acquisition'?'selected':''?>>Land Opportunity</option><option value="joint_venture" <?=$selectedSubject==='joint_venture'?'selected':''?>>Partnership</option><option value="general_inquiry" <?=$selectedSubject==='general_inquiry'?'selected':''?>>General Inquiry</option><option value="media_press" <?=$selectedSubject==='media_press'?'selected':''?>>Media</option><option value="other" <?=$selectedSubject==='other'?'selected':''?>>Other</option></select></div>
 <div id="investment-fields" hidden><div class="form-grid"><div class="field"><label>Prospective Investor Type</label><select name="investor_type"><option value="">Select</option><option value="individual">Individual</option><option value="joint">Joint</option><option value="llc_partnership">LLC / Partnership</option><option value="trust">Trust</option><option value="retirement_account">Retirement Account</option><option value="other">Other</option></select></div><div class="field"><label>Amount You May Consider Investing</label><select name="investment_amount"><option value="">Select</option><?php foreach(['25000','50000','75000','100000','150000','250000'] as $a):?><option value="<?=$a?>">$<?=number_format((int)$a)?></option><?php endforeach;?></select></div></div></div>
-<div class="field"><label>Message</label><textarea name="message"></textarea></div><button class="primary" type="submit">Send Message<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></form></div></section></main>
+<div class="field"><label>Message</label><textarea name="message"></textarea></div>
+<div class="field contact-captcha"><label for="contact-captcha-answer">Security Check: <?=e($contactCaptcha['question'])?> *</label><input type="hidden" name="captcha_token" value="<?=e($contactCaptcha['token'])?>"><input id="contact-captcha-answer" name="captcha_answer" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" required aria-describedby="contact-captcha-help"><small id="contact-captcha-help">Please enter the number that answers the question.</small></div>
+<button class="primary" type="submit">Send Message<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></form></div></section></main>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
  const s=document.getElementById('subject'),f=document.getElementById('investment-fields');

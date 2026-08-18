@@ -1,11 +1,8 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/includes/bootstrap.php';
-header('Content-Type: application/json; charset=utf-8');
-
 function month_end_json(bool $ok,string $message,array $extra=[]): never {
-    echo json_encode(array_merge(['ok'=>$ok,'message'=>$message],$extra),JSON_UNESCAPED_SLASHES);
-    exit;
+    app_json_result($ok,$message,$extra);
 }
 
 if($_SERVER['REQUEST_METHOD']!=='POST')month_end_json(false,'Invalid request.');
@@ -20,6 +17,7 @@ $action=(string)($_POST['action']??'save_fields');
 try{
     $periodQuery=db()->prepare('SELECT id,status,banquet_tax FROM management_month_end_submissions WHERE management_property_id=? AND report_year=? AND report_month=?');$periodQuery->execute([$propertyId,$year,$month]);$currentPeriod=$periodQuery->fetch()?:null;
     if($action==='reset_month'){
+        if(!manage_is_admin())month_end_json(false,'Only a Super Admin may reset a Month End period.');
         if($currentPeriod&&$currentPeriod['status']==='finalized')month_end_json(false,'A finalized month cannot be reset. An Admin must unfinalize it first.');$filePaths=[];if($currentPeriod){$q=db()->prepare('SELECT file_path FROM management_month_end_files WHERE management_month_end_submission_id=?');$q->execute([(int)$currentPeriod['id']]);$filePaths=array_map('strval',$q->fetchAll(PDO::FETCH_COLUMN));}db()->beginTransaction();if($currentPeriod)db()->prepare('DELETE FROM management_month_end_files WHERE management_month_end_submission_id=?')->execute([(int)$currentPeriod['id']]);db()->prepare('DELETE FROM management_month_end_tax_statuses WHERE management_property_id=? AND report_year=? AND report_month=?')->execute([$propertyId,$year,$month]);if($currentPeriod)db()->prepare('DELETE FROM management_month_end_submissions WHERE id=?')->execute([(int)$currentPeriod['id']]);db()->commit();foreach($filePaths as $filePath)try{znp_storage_delete($filePath);}catch(Throwable $cleanup){error_log('Month End reset file cleanup failed: '.$cleanup->getMessage());}month_end_json(true,'Month End reset.');
     }
     if($currentPeriod&&$currentPeriod['status']==='finalized'&&$action!=='toggle_tax_status')month_end_json(false,'This report is finalized. An Admin must unfinalize it before changes can be made.');

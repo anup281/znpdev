@@ -16,6 +16,18 @@ znp_render_workspace_footer('Management Portal',znp_application_version_label(),
 </div>
 <script>
 (function(){
+  const calendarHeading=document.querySelector('.manage-year-calendar .manage-calendar-heading>div:first-child');
+  const calendarTitles={
+    'month_end.php':'Month End Calendar',
+    'receipts.php':'Receipts Calendar',
+    'franchise_fees.php':'Franchise Fees Calendar'
+  };
+  const calendarTitle=calendarTitles[<?=json_encode((string)($currentManagementPage??''),JSON_UNESCAPED_SLASHES)?>];
+  if(calendarHeading&&calendarTitle){
+    const title=calendarHeading.querySelector('h2');
+    if(title)title.textContent=calendarTitle;
+    calendarHeading.querySelector('p')?.remove();
+  }
   const button=document.querySelector('.management-menu-toggle');
   const nav=document.getElementById('management-nav');
   if(!button||!nav)return;

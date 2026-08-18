@@ -1,5 +1,6 @@
 (function(){
  const form=document.querySelector('[data-management-fee-form]');if(!form)return;
+ const quarterLabel=form.elements.quarter?.closest('label');if(quarterLabel?.firstChild)quarterLabel.firstChild.textContent='Quarter Paying';
  const totalRevenue=form.elements.total_revenue;
  const number=value=>parseFloat(String(value||'0').replace(/[$,]/g,''))||0;
  let baselines={};try{baselines=JSON.parse(form.dataset.feeBaselines||'{}');}catch(error){}

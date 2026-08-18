@@ -27,6 +27,27 @@
   let tesseractPromise;
   let timer;
 
+  async function copyBankValue(trigger){
+    const field=trigger.closest('.manage-copy-bank-field,.manage-copy-money-field');
+    const input=field?.querySelector('[data-copy-bank-value]');
+    const button=field?.querySelector('[data-copy-bank-button]');
+    const buttonLabel=button?.querySelector('span');
+    const value=input?.value||'';
+    if(!value){window.manageToast?.('Nothing to copy','error');return;}
+    try{
+      if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(value);
+      else{
+        input.focus();input.select();input.setSelectionRange(0,value.length);
+        if(!document.execCommand('copy'))throw new Error('Copy failed');
+        input.setSelectionRange(0,0);input.blur();
+      }
+      field.classList.add('is-copied');
+      if(buttonLabel)buttonLabel.textContent='Copied';
+      window.manageToast?.('Copied to clipboard','success');
+      window.setTimeout(()=>{field.classList.remove('is-copied');if(buttonLabel)buttonLabel.textContent='Copy';},1400);
+    }catch(error){window.manageToast?.('Unable to copy this value','error');}
+  }
+
   function setStatus(message,state){
     status.textContent=message;
     status.dataset.state=state||'';
@@ -84,11 +105,11 @@
     if(!selectedMonth)return;
     const label=selectedMonth.querySelector('small');
     const normalized=!periodStatus||periodStatus==='draft'?'blank':periodStatus;
-    if(label)label.textContent=normalized.charAt(0).toUpperCase()+normalized.slice(1);
+    if(label)label.textContent=normalized==='finalized'?'Finalized':(normalized==='submitted'?'Files & Numbers Loaded':'Not Ready');
     selectedMonth.classList.remove('blank','draft','submitted','finalized');
     selectedMonth.classList.add(normalized);
     const icon=selectedMonth.querySelector('.manage-calendar-status-icon i');
-    if(icon)icon.className='fa-solid '+(normalized==='finalized'?'fa-arrow-up':(normalized==='submitted'?'fa-check':'fa-circle'));
+    if(icon)icon.className='fa-solid '+(normalized==='finalized'?'fa-lock':(normalized==='submitted'?'fa-file-circle-check':'fa-circle'));
   }
   function autosave(){
     clearTimeout(timer);timer=setTimeout(async()=>{
@@ -226,6 +247,8 @@
   document.addEventListener('keydown',event=>{if(event.key==='Escape')closeCalculationModal();});
   refreshCalculationButton();
   document.addEventListener('click',async event=>{
+    const copyTrigger=event.target.closest('[data-copy-bank-value],[data-copy-bank-button]');
+    if(copyTrigger){event.preventDefault();copyBankValue(copyTrigger);return;}
     const button=event.target.closest('[data-reset-month-end]');if(!button)return;const label=button.dataset.monthLabel||'this month';
     if(!window.confirm('Reset '+label+'? This will permanently remove all Month End values, uploaded files, and tax statuses for this month.'))return;
     if(!window.confirm('Final confirmation: permanently reset '+label+' to Blank? This cannot be undone.'))return;

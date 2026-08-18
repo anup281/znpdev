@@ -313,6 +313,27 @@ function uploaded_attachment(string $field,int $maxBytes=15728640): array {
  return ['ok'=>true,'attachment'=>['name'=>$name,'type'=>$mime,'data'=>$data]];
 }
 
+/** Normalize PHP's single- and multi-file upload shapes into one list. */
+function app_uploaded_file_entries(array $files): array {
+ $names=$files['name']??[];
+ if(!is_array($names))return [[
+  'name'=>(string)$names,
+  'type'=>(string)($files['type']??''),
+  'tmp_name'=>(string)($files['tmp_name']??''),
+  'error'=>(int)($files['error']??UPLOAD_ERR_NO_FILE),
+  'size'=>(int)($files['size']??0),
+ ]];
+ $entries=[];
+ foreach($names as $index=>$name)$entries[]=[
+  'name'=>(string)$name,
+  'type'=>(string)($files['type'][$index]??''),
+  'tmp_name'=>(string)($files['tmp_name'][$index]??''),
+  'error'=>(int)($files['error'][$index]??UPLOAD_ERR_NO_FILE),
+  'size'=>(int)($files['size'][$index]??0),
+ ];
+ return $entries;
+}
+
 /* Version 1.8.1: SEO and public form protection */
 function seo_defaults(): array {
  return [
@@ -338,6 +359,26 @@ function current_canonical_url(): string {
  if($path===''||$path==='index.php')return $base.'/';
  return $base.'/'.$path;
 }
+function contact_captcha_create(): array {
+ if(session_status()!==PHP_SESSION_ACTIVE)session_start();
+ $now=time();$challenges=is_array($_SESSION['contact_captcha_challenges']??null)?$_SESSION['contact_captcha_challenges']:[];
+ foreach($challenges as $token=>$challenge)if(!is_array($challenge)||(int)($challenge['created_at']??0)<$now-1800)unset($challenges[$token]);
+ $left=random_int(2,9);$right=random_int(1,9);$token=bin2hex(random_bytes(16));
+ $challenges[$token]=['answer'=>$left+$right,'created_at'=>$now];
+ $_SESSION['contact_captcha_challenges']=array_slice($challenges,-5,null,true);
+ return ['token'=>$token,'question'=>'What is '.$left.' + '.$right.'?'];
+}
+function contact_captcha_check(array $post): array {
+ if(session_status()!==PHP_SESSION_ACTIVE)session_start();
+ $token=trim((string)($post['captcha_token']??''));$answer=trim((string)($post['captcha_answer']??''));
+ $challenges=is_array($_SESSION['contact_captcha_challenges']??null)?$_SESSION['contact_captcha_challenges']:[];
+ $challenge=preg_match('/^[a-f0-9]{32}$/',$token)?($challenges[$token]??null):null;
+ if(isset($challenges[$token]))unset($challenges[$token]);
+ $_SESSION['contact_captcha_challenges']=$challenges;
+ if(!is_array($challenge)||(int)($challenge['created_at']??0)<time()-1800)return [false,'The security question expired. Please answer the new question below.'];
+ if(!preg_match('/^\d{1,2}$/',$answer)||(int)$answer!==(int)$challenge['answer'])return [false,'Please answer the security question correctly.'];
+ return [true,''];
+}
 function contact_spam_check(array $post): array {
  if(trim((string)($post['website']??''))!=='')return [false,'Unable to submit this form.'];
  $started=(int)($_SESSION['contact_form_started']??0);$elapsed=time()-$started;
@@ -352,6 +393,53 @@ function contact_spam_check(array $post): array {
   db()->prepare('INSERT INTO public_form_submissions(ip_hash,fingerprint,submitted_at) VALUES(?,?,NOW())')->execute([$ipHash,$fingerprint]);
  }catch(Throwable $e){error_log('Public form anti-spam check failed: '.$e->getMessage());return [false,'The form is temporarily unavailable. Please try again later.'];}
  return [true,''];
+}
+
+/**
+ * Send a consistent JSON response and terminate the request.
+ *
+ * Endpoint-specific helpers may wrap this function when a domain-oriented
+ * name makes the calling code easier to read.
+ */
+function app_json_response(array $payload,int $status=200,bool $clearOutput=false): never {
+ if($clearOutput)while(ob_get_level()>0)ob_end_clean();
+ http_response_code($status);
+ header('Content-Type: application/json; charset=utf-8');
+ header('Cache-Control: no-store');
+ try{$json=json_encode($payload,JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);}
+ catch(JsonException $exception){error_log('JSON response encoding failed: '.$exception->getMessage());http_response_code(500);$json='{"ok":false,"message":"The response could not be prepared."}';}
+ echo $json;
+ exit;
+}
+
+function app_json_result(bool $ok,string $message,array $extra=[],int $status=200,bool $clearOutput=false): never {
+ app_json_response(array_merge(['ok'=>$ok,'message'=>$message],$extra),$status,$clearOutput);
+}
+
+/** Check database capabilities without repeating SHOW TABLE/COLUMN queries. */
+function db_table_exists(string $table): bool {
+ static $cache=[];
+ if(isset($cache[$table]))return $cache[$table];
+ if(!preg_match('/^[A-Za-z0-9_]+$/',$table))throw new InvalidArgumentException('Invalid database table name.');
+ $query=db()->query('SHOW TABLE STATUS WHERE Name='.db()->quote($table));
+ return $cache[$table]=(bool)$query->fetch();
+}
+
+function db_column_exists(string $table,string $column): bool {
+ static $cache=[];
+ $key=$table.'.'.$column;
+ if(isset($cache[$key]))return $cache[$key];
+ if(!preg_match('/^[A-Za-z0-9_]+$/',$table)||!preg_match('/^[A-Za-z0-9_]+$/',$column))throw new InvalidArgumentException('Invalid database schema name.');
+ $query=db()->query('SHOW COLUMNS FROM `'.$table.'` WHERE Field='.db()->quote($column));
+ return $cache[$key]=(bool)$query->fetch();
+}
+
+function db_schema_ready(array $tables=[],array $columns=[]): bool {
+ try{
+  foreach($tables as $table)if(!db_table_exists((string)$table))return false;
+  foreach($columns as $table=>$requiredColumns)foreach((array)$requiredColumns as $column)if(!db_column_exists((string)$table,(string)$column))return false;
+  return true;
+ }catch(Throwable $exception){error_log('Database capability check failed: '.$exception->getMessage());return false;}
 }
 
 require_once __DIR__.'/newsletter.php';

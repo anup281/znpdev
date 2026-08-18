@@ -23,7 +23,7 @@ require __DIR__.'/includes/header.php';
 ?>
 <?php if(!$pinUnlocked):?>
 <main class="receipt-pin-shell" data-service-worker="<?=e(app_url('/receipt-uploader-sw.js'))?>"><section class="receipt-pin-card"><div class="receipt-pin-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></div><p class="receipt-uploader-eyebrow">ZNP Management</p><h1>Receipt Uploader</h1><p>Enter the four-digit passcode to continue.</p><?php if($pinError):?><div class="receipt-pin-error" role="alert"><?=e($pinError)?></div><?php endif;?><form method="post" data-receipt-pin-gate><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="unlock_receipt_uploader"><input type="hidden" name="passcode" value="" data-pin-value><div class="receipt-pin-dots" aria-label="Passcode entry" data-pin-dots><span></span><span></span><span></span><span></span></div><div class="receipt-pin-keypad" aria-label="Numeric keypad"><?php foreach([1,2,3,4,5] as $digit):?><button type="button" data-pin-digit="<?=$digit?>" aria-label="<?=$digit?>"><?=$digit?></button><?php endforeach;?><button type="button" class="receipt-pin-delete" data-pin-delete aria-label="Delete last digit"><i class="fa-solid fa-delete-left" aria-hidden="true"></i></button></div><p class="receipt-pin-status" data-pin-status aria-live="polite"></p></form></section></main>
-<script src="<?=e(app_url('/assets/receipt-uploader.js'))?>?v=4" defer></script>
+<script src="<?=e(app_url('/assets/receipt-uploader.js'))?>?v=5" defer></script>
 <?php require __DIR__.'/includes/footer.php';exit;?>
 <?php endif;?>
 <main class="receipt-uploader-main" data-upload-endpoint="<?=e(app_url('/helpers/receipt_uploader_upload.php'))?>" data-service-worker="<?=e(app_url('/receipt-uploader-sw.js'))?>">
@@ -38,7 +38,7 @@ require __DIR__.'/includes/header.php';
      <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="property_id" value="<?=(int)$property['id']?>"><input type="hidden" name="receipt_group" value="<?=e($receiptGroup)?>"><input type="hidden" name="report_year" value="<?=e(substr($currentMonth,0,4))?>"><input type="hidden" name="report_month" value="<?=e((string)(int)substr($currentMonth,5,2))?>"><input class="receipt-uploader-honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
      <div class="receipt-upload-heading"><span><i class="fa-solid <?=e($sectionIcon)?>" aria-hidden="true"></i></span><div><h3><?=e($sectionLabel)?></h3><p>Upload <?=e($sectionDescription)?>.</p></div></div>
      <label class="receipt-public-drop-zone"><input type="file" name="files[]" multiple accept=".pdf,application/pdf,image/jpeg,image/png,image/webp" data-file-picker><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><strong>Drop files here</strong><span>or tap to choose PDFs or photos</span><small data-selection>No files selected</small></label>
-     <div class="receipt-upload-actions"><label class="receipt-camera-button"><input type="file" name="files[]" accept="image/*" capture="environment" data-camera-picker><i class="fa-solid fa-camera" aria-hidden="true"></i> Take Photo</label><span>JPG, PNG, WebP, or PDF · 25 MB max</span></div>
+     <div class="receipt-upload-actions"><label class="receipt-camera-button"><input type="file" name="files[]" accept="image/*" capture="environment" data-camera-picker><i class="fa-solid fa-camera" aria-hidden="true"></i> Take Photo</label><span>JPG, PNG, WebP, or PDF · 50 MB max</span></div>
      <div class="receipt-upload-status" role="status" aria-live="polite" data-upload-status></div>
     </form>
    <?php endforeach;?>
@@ -48,5 +48,5 @@ require __DIR__.'/includes/header.php';
  <?php if(!$properties):?><div class="receipt-uploader-empty"><h2>No properties available</h2><p>There are no active management properties configured for uploads.</p></div><?php endif;?>
  </section>
 </main>
-<script src="<?=e(app_url('/assets/receipt-uploader.js'))?>?v=4" defer></script>
+<script src="<?=e(app_url('/assets/receipt-uploader.js'))?>?v=5" defer></script>
 <?php require __DIR__.'/includes/footer.php';?>

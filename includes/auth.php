@@ -38,22 +38,14 @@ function investments_only_role(?array $user=null): bool {
     }
 }
 function investment_user_access_ready(): bool {
-    static $ready=null;
-    if($ready!==null)return $ready;
-    try{$ready=(bool)db()->query("SHOW TABLES LIKE 'investment_user_access'")->fetchColumn();}
-    catch(Throwable $exception){error_log('Investment user access check failed: '.$exception->getMessage());$ready=false;}
-    return $ready;
+    return db_schema_ready(['investment_user_access']);
 }
 function partner_role(?array $user=null): bool {
     $user=$user??admin_user();
     return $user&&normalized_role((string)($user['role']??''))==='partner';
 }
 function partner_access_ready(): bool {
-    static $ready=null;
-    if($ready!==null)return $ready;
-    try{$ready=(bool)db()->query("SHOW TABLES LIKE 'admin_partner_permissions'")->fetchColumn();}
-    catch(Throwable $exception){error_log('Partner access check failed: '.$exception->getMessage());$ready=false;}
-    return $ready;
+    return db_schema_ready(['admin_partner_permissions']);
 }
 function partner_permission_definitions(): array {
     return [
@@ -100,7 +92,7 @@ function management_user_role(?array $user=null): bool {
     if($role==='management user')return true;
     if($role!==''||(int)($user['id']??0)<1)return false;
     try{
-        if(!(bool)db()->query("SHOW TABLES LIKE 'management_property_users'")->fetchColumn())return false;
+        if(!db_table_exists('management_property_users'))return false;
         $check=db()->prepare('SELECT 1 FROM management_property_users WHERE admin_user_id=? LIMIT 1');
         $check->execute([(int)$user['id']]);
         return (bool)$check->fetchColumn();

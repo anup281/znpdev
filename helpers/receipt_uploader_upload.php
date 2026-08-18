@@ -5,11 +5,9 @@ require_once __DIR__.'/../includes/functions.php';
 require_once __DIR__.'/../includes/storage.php';
 require_once __DIR__.'/../includes/receipt_uploader.php';
 if(session_status()!==PHP_SESSION_ACTIVE)session_start();
-header('Content-Type: application/json; charset=utf-8');
-
 function public_receipt_json(bool $ok,string $message,array $extra=[]): never
 {
-    echo json_encode(array_merge(['ok'=>$ok,'message'=>$message],$extra),JSON_UNESCAPED_SLASHES);exit;
+    app_json_result($ok,$message,$extra);
 }
 
 if($_SERVER['REQUEST_METHOD']!=='POST')public_receipt_json(false,'Invalid request.');

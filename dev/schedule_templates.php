@@ -10,16 +10,22 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if($templateId<1||$name===''||!in_array($scope,['Project','Building'],true))throw new RuntimeException('Invalid schedule template.');
   $ids=$_POST['item_id']??[];$activities=$_POST['activity_name']??[];$durations=$_POST['duration_days']??[];$trades=$_POST['default_trade']??[];
   $newActivities=$_POST['new_activity_name']??[];$newDurations=$_POST['new_duration_days']??[];$newTrades=$_POST['new_default_trade']??[];
-  if(!is_array($ids)||!is_array($activities)||!is_array($durations)||!is_array($trades))throw new RuntimeException('Invalid template items.');
+  if(!is_array($ids)||!is_array($activities)||!is_array($durations)||!is_array($trades)||!is_array($newActivities)||!is_array($newDurations)||!is_array($newTrades))throw new RuntimeException('Invalid template items.');
+  $updates=[];$submittedIds=[];
+  foreach($ids as $i=>$rawId){$id=(int)$rawId;$activity=trim((string)($activities[$i]??''));if($id<1||$activity==='')throw new RuntimeException('Every template activity must have a name.');if(isset($submittedIds[$id]))throw new RuntimeException('A template activity was submitted more than once.');$submittedIds[$id]=true;$trade=trim((string)($trades[$i]??''));$updates[]=['id'=>$id,'activity'=>$activity,'duration'=>max(1,(int)($durations[$i]??1)),'trade'=>$trade!==''?$trade:null];}
+  $deleteIds=[];foreach((array)($_POST['delete_item_ids']??[]) as $deleteValue){foreach(explode(',',(string)$deleteValue) as $deleteId){$deleteId=(int)$deleteId;if($deleteId>0)$deleteIds[$deleteId]=true;}}
   $pdo->beginTransaction();
   $pdo->prepare('UPDATE construction_schedule_templates SET template_name=?,schedule_scope=?,is_active=1,is_default=1,updated_at=NOW() WHERE id=?')->execute([$name,$scope,$templateId]);
   $pdo->prepare('UPDATE construction_schedule_templates SET is_default=0 WHERE schedule_scope=? AND id<>?')->execute([$scope,$templateId]);
+  if($deleteIds){$del=$pdo->prepare('DELETE FROM construction_schedule_template_items WHERE id=? AND template_id=?');foreach(array_keys($deleteIds) as $id)$del->execute([$id,$templateId]);}
+  $current=$pdo->prepare('SELECT id FROM construction_schedule_template_items WHERE template_id=? ORDER BY id');$current->execute([$templateId]);$currentIds=array_map('intval',$current->fetchAll(PDO::FETCH_COLUMN));$postedIds=array_map('intval',array_keys($submittedIds));sort($postedIds);if($currentIds!==$postedIds)throw new RuntimeException('The template changed while you were editing it. Refresh and try again.');
+  $maxSequence=$pdo->prepare('SELECT COALESCE(MAX(sequence_no),0) FROM construction_schedule_template_items WHERE template_id=?');$maxSequence->execute([$templateId]);$temporarySequence=(int)$maxSequence->fetchColumn()+10;
+  $move=$pdo->prepare('UPDATE construction_schedule_template_items SET sequence_no=? WHERE id=? AND template_id=?');foreach($updates as $item){$move->execute([$temporarySequence,$item['id'],$templateId]);$temporarySequence+=10;}
   $update=$pdo->prepare('UPDATE construction_schedule_template_items SET sequence_no=?,activity_name=?,default_duration_days=?,default_trade=? WHERE id=? AND template_id=?');
   $seq=10;
-  foreach($ids as $i=>$rawId){$id=(int)$rawId;$activity=trim((string)($activities[$i]??''));if($id<1||$activity==='')continue;$duration=max(1,(int)($durations[$i]??1));$trade=trim((string)($trades[$i]??''));$update->execute([$seq,$activity,$duration,$trade!==''?$trade:null,$id,$templateId]);$seq+=10;}
+  foreach($updates as $item){$update->execute([$seq,$item['activity'],$item['duration'],$item['trade'],$item['id'],$templateId]);$seq+=10;}
   $insert=$pdo->prepare('INSERT INTO construction_schedule_template_items(template_id,sequence_no,activity_name,default_duration_days,default_trade,created_at) VALUES(?,?,?,?,?,NOW())');
   foreach($newActivities as $i=>$raw){$activity=trim((string)$raw);if($activity==='')continue;$duration=max(1,(int)($newDurations[$i]??1));$trade=trim((string)($newTrades[$i]??''));$insert->execute([$templateId,$seq,$activity,$duration,$trade!==''?$trade:null]);$seq+=10;}
-  $deleteIds=$_POST['delete_item_ids']??[];if(is_array($deleteIds)&&$deleteIds){$del=$pdo->prepare('DELETE FROM construction_schedule_template_items WHERE id=? AND template_id=?');foreach($deleteIds as $id){$del->execute([(int)$id,$templateId]);}}
   $pdo->commit();header('Location: schedule_templates.php?template_id='.$templateId.'&saved=1');exit;
  }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();$error=$e->getMessage();}
 }
@@ -30,7 +36,7 @@ if($template){$st=$pdo->prepare('SELECT * FROM construction_schedule_template_it
 $trades=$pdo->query('SELECT trade_name FROM construction_trades WHERE is_active=1 ORDER BY display_order,trade_name')->fetchAll(PDO::FETCH_COLUMN);
 require __DIR__.'/includes/header.php';
 ?>
-<div class="page-head"><div><h1>Schedule Templates</h1><p class="muted">Manage the task list used when a new project or building schedule is initialized. Existing schedules are not changed.</p></div></div>
+<div class="page-head"><div><h1>Schedule Templates</h1><p class="muted">Manage the task list used when a new project or building schedule is initialized. Existing schedules are not changed.</p></div><a class="btn btn-secondary" href="construction_timeline_templates_export.php">Export Building &amp; Sitework</a></div>
 <?php if($success):?><div class="card notice-success">Schedule template saved.</div><?php endif;?>
 <?php if($error):?><div class="card notice-error"><?=e($error)?></div><?php endif;?>
 <div class="template-layout">

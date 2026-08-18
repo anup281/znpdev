@@ -2,8 +2,6 @@
 declare(strict_types=1);
 require_once __DIR__.'/includes/bootstrap.php';
 
-header('Content-Type: application/json; charset=utf-8');
-
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);
@@ -33,10 +31,8 @@ try {
     db()->prepare('UPDATE construction_project_companies SET notes=?,updated_at=NOW() WHERE id=? AND construction_project_id=?')
         ->execute([$notes, $assignmentId, $projectId]);
 
-    echo json_encode(['ok' => true, 'saved_at' => date('g:i A')], JSON_THROW_ON_ERROR);
+    app_json_response(['ok'=>true,'saved_at'=>date('g:i A')]);
 } catch (Throwable $exception) {
-    if (http_response_code() < 400) {
-        http_response_code(500);
-    }
-    echo json_encode(['ok' => false, 'message' => $exception->getMessage()]);
+    $status=http_response_code();
+    app_json_response(['ok'=>false,'message'=>$exception->getMessage()],$status>=400?$status:500);
 }

@@ -1,6 +1,6 @@
 <?php
 ob_start();require_once __DIR__.'/../includes/auth.php';require_admin();
-function model_settings_json(array $payload,int $status=200):void{while(ob_get_level()>0)ob_end_clean();http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode($payload,JSON_UNESCAPED_SLASHES);exit;}
+function model_settings_json(array $payload,int $status=200):void{app_json_response($payload,$status,true);}
 if($_SERVER['REQUEST_METHOD']!=='POST')model_settings_json(['ok'=>false,'error'=>'POST requests only.'],405);
 if(!csrf_check($_POST['csrf_token']??''))model_settings_json(['ok'=>false,'error'=>'Your session expired. Refresh and try again.'],419);
 $projectId=(int)($_POST['investment_opportunity_id']??0);$field=(string)($_POST['field']??'');$value=trim((string)($_POST['value']??''));
@@ -12,18 +12,18 @@ if($projectId<1||(!in_array($field,$fields,true)&&!$constructionField&&!$occupan
 if(!can_access_investment($projectId))model_settings_json(['ok'=>false,'error'=>'You do not have access to this investment.'],403);
 $archiveCheck=db()->prepare("SELECT 1 FROM investment_opportunities WHERE id=? AND (status='archived' OR (status='' AND is_visible=0 AND accepting_inquiries=0))");$archiveCheck->execute([$projectId]);if($archiveCheck->fetchColumn())model_settings_json(['ok'=>false,'error'=>'Archived investments are view only.'],403);
 try{
- if(!db()->query("SHOW TABLES LIKE 'investment_model_settings'")->fetchColumn())throw new RuntimeException('Model Settings are unavailable because the required database table is missing. Contact the system administrator.');
+ if(!db_table_exists('investment_model_settings'))throw new RuntimeException('Model Settings are unavailable because the required database table is missing. Contact the system administrator.');
  $check=db()->prepare('SELECT id FROM investment_opportunities WHERE id=?');$check->execute([$projectId]);if(!$check->fetchColumn())throw new RuntimeException('Investment not found.');
  $stored=null;if($value!==''){if(!is_numeric($value)||!is_finite((float)$value)||(float)$value<0)throw new RuntimeException('Enter a valid number of zero or greater.');if(in_array($field,$integers,true)&&filter_var($value,FILTER_VALIDATE_INT)===false)throw new RuntimeException('Enter a whole number of months.');if((in_array($field,$percentages,true)||$constructionField||$occupancyField)&&(float)$value>100)throw new RuntimeException('Percentage values cannot exceed 100.');$stored=$value;}
  if($occupancyField){
-  if(!db()->query("SHOW TABLES LIKE 'investment_monthly_occupancy_settings'")->fetchColumn())throw new RuntimeException('Monthly occupancy storage is unavailable. Run the Monthly Occupancy installer.');
+  if(!db_table_exists('investment_monthly_occupancy_settings'))throw new RuntimeException('Monthly occupancy storage is unavailable. Run the Monthly Occupancy installer.');
   if($stored===null)throw new RuntimeException('Monthly occupancy cannot be blank.');
   $sql='INSERT INTO investment_monthly_occupancy_settings (investment_opportunity_id,year_number,month_number,occupancy_percent,updated_by_admin_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE occupancy_percent=VALUES(occupancy_percent),updated_by_admin_id=VALUES(updated_by_admin_id)';
   db()->prepare($sql)->execute([$projectId,(int)$occupancyMatch[1],(int)$occupancyMatch[2],$stored,admin_user()['id']??null]);
   model_settings_json(['ok'=>true,'message'=>'Saved','value'=>$stored]);
  }
  if($constructionField){
-  if(!db()->query("SHOW TABLES LIKE 'investment_construction_draw_settings'")->fetchColumn())throw new RuntimeException('Construction timeline storage is unavailable. Apply the construction timeline SQL upgrade.');
+  if(!db_table_exists('investment_construction_draw_settings'))throw new RuntimeException('Construction timeline storage is unavailable. Apply the construction timeline SQL upgrade.');
   $column=$constructionMatch[1]==='equity_spent'?'equity_spent_percent':'loan_drawn_percent';$month=(int)$constructionMatch[2];
   if($stored===null)throw new RuntimeException('Construction timeline percentages cannot be blank.');
   $equityDefaults=[25,50,75,100,100,100,100,100,100,100,100,100];$loanDefaults=[0,0,0,0,12.5,25,37.5,50,62.5,75,87.5,100];$seed=db()->prepare('INSERT IGNORE INTO investment_construction_draw_settings (investment_opportunity_id,month_number,equity_spent_percent,loan_drawn_percent,updated_by_admin_id) VALUES (?,?,?,?,?)');for($seedMonth=1;$seedMonth<=12;$seedMonth++)$seed->execute([$projectId,$seedMonth,$equityDefaults[$seedMonth-1],$loanDefaults[$seedMonth-1],admin_user()['id']??null]);

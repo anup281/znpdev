@@ -6,12 +6,7 @@ require_admin();
 
 function investor_json(array $payload,int $status=200):void
 {
-    while(ob_get_level()>0)ob_end_clean();
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-store');
-    echo json_encode($payload,JSON_UNESCAPED_SLASHES);
-    exit;
+    app_json_response($payload,$status,true);
 }
 
 function investor_number(string $value,string $label,bool $allowZero=false):float
@@ -37,8 +32,7 @@ function investor_name(string $value,string $label):string
 
 function investor_tables_ready(PDO $pdo):bool
 {
-    return (bool)$pdo->query("SHOW TABLES LIKE 'investment_investor_structures'")->fetchColumn()
-        &&(bool)$pdo->query("SHOW TABLES LIKE 'investment_project_investors'")->fetchColumn();
+    return db_schema_ready(['investment_investor_structures','investment_project_investors']);
 }
 
 function investor_payload(PDO $pdo,int $projectId):array

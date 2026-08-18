@@ -4,10 +4,10 @@ require __DIR__.'/includes/db.php'; require __DIR__.'/includes/functions.php';
 $items=db()->query("SELECT * FROM investment_opportunities WHERE is_visible=1 ORDER BY display_order")->fetchAll();
 $publicModelSettings=[];
 try{
-  $modelSettingsReady=(bool)db()->query("SHOW TABLES LIKE 'investment_model_settings'")->fetchColumn();
-  $constructionTimelineReady=(bool)db()->query("SHOW TABLES LIKE 'investment_construction_draw_settings'")->fetchColumn();
-  $monthlyOccupancyReady=(bool)db()->query("SHOW TABLES LIKE 'investment_monthly_occupancy_settings'")->fetchColumn();
-  $investorStructureReady=(bool)db()->query("SHOW TABLES LIKE 'investment_investor_structures'")->fetchColumn();
+  $modelSettingsReady=db_table_exists('investment_model_settings');
+  $constructionTimelineReady=db_table_exists('investment_construction_draw_settings');
+  $monthlyOccupancyReady=db_table_exists('investment_monthly_occupancy_settings');
+  $investorStructureReady=db_table_exists('investment_investor_structures');
   foreach($items as $item){
     $projectId=(int)$item['id'];$settings=[];
     if($modelSettingsReady){

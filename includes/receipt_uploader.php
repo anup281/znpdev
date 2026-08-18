@@ -32,18 +32,7 @@ function znp_receipt_uploader_unlock(): void
 
 function znp_receipt_uploader_normalize_files(array $files): array
 {
-    $names=$files['name']??[];
-    if(!is_array($names))$names=[$names];
-    $normalized=[];
-    foreach($names as $index=>$name){
-        $normalized[]=[
-            'name'=>(string)$name,
-            'tmp_name'=>(string)($files['tmp_name'][$index]??''),
-            'error'=>(int)($files['error'][$index]??UPLOAD_ERR_NO_FILE),
-            'size'=>(int)($files['size'][$index]??0),
-        ];
-    }
-    return $normalized;
+    return app_uploaded_file_entries($files);
 }
 
 function znp_receipt_uploader_jpeg_blob(string $source): array
@@ -115,7 +104,7 @@ function znp_receipt_uploader_store_files(array $files,int $propertyId,int $year
     try{
         foreach($uploads as $file){
             if($file['error']!==UPLOAD_ERR_OK)throw new ZnpReceiptUploaderException('One of the files could not be uploaded.');
-            if($file['size']<1||$file['size']>26214400)throw new ZnpReceiptUploaderException('Each file must be 25 MB or smaller.');
+            if($file['size']<1||$file['size']>52428800)throw new ZnpReceiptUploaderException('Each file must be 50 MB or smaller.');
             $tmp=$file['tmp_name'];$mime=(string)(new finfo(FILEINFO_MIME_TYPE))->file($tmp);$isPdf=$mime==='application/pdf';$isImage=in_array($mime,$allowedImages,true);
             if(!$isPdf&&!$isImage)throw new ZnpReceiptUploaderException('Upload PDF, JPG, PNG, or WebP files only.');
             if($isPdf){$handle=fopen($tmp,'rb');$signature=$handle?fread($handle,5):false;if(is_resource($handle))fclose($handle);if($signature!=='%PDF-')throw new ZnpReceiptUploaderException('A PDF file did not pass validation.');}

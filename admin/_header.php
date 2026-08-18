@@ -37,6 +37,7 @@ function admin_nav_active(array $pages): string
     <?php if(in_array(normalized_role((string)($user['role']??'')),['super admin','super administrator'],true)):?>
     <a class="admin-native-sub <?=admin_nav_active(['database_export.php'])?>" href="database_export.php">Database Export</a>
     <a class="admin-native-sub <?=admin_nav_active(['deployment.php'])?>" href="deployment.php">Deployment</a>
+    <a class="admin-native-sub <?=admin_nav_active(['import_construction_contracts_once.php'])?>" href="import_construction_contracts_once.php">Contract Import</a>
     <?php endif; ?>
     <?php endif; ?>
     <?php endif; ?>
@@ -50,7 +51,7 @@ function admin_nav_active(array $pages): string
 <?php if($partnerCan('crm')):?><a class="admin-top-link <?=admin_nav_active(['contacts.php','leads.php','inquiries.php'])?>" href="contacts.php">CRM</a><?php endif;?>
 <?php if($partnerCan('subscribers')||$partnerCan('campaigns')):?><div class="admin-hover-group"><button type="button">Marketing</button><div class="admin-hover-menu"><?php if($partnerCan('subscribers')):?><a class="<?=admin_nav_active(['newsletter_subscribers.php'])?>" href="newsletter_subscribers.php">Subscribers</a><?php endif;?><?php if($partnerCan('campaigns')):?><a class="<?=admin_nav_active(['newsletter_campaigns.php','newsletter_campaign_edit.php'])?>" href="newsletter_campaigns.php">Campaigns</a><?php endif;?></div></div><?php endif;?>
 <?php if(!$partnerUser):?>
-<div class="admin-hover-group"><button type="button">Administration</button><div class="admin-hover-menu"><a class="<?=admin_nav_active(['users.php','user_edit.php'])?>" href="users.php">Users</a><a class="<?=admin_nav_active(['settings.php'])?>" href="settings.php">Settings</a><a class="<?=admin_nav_active(['legal_pages.php','legal_page_edit.php'])?>" href="legal_pages.php">Legal Pages</a><?php if(in_array(normalized_role((string)($user['role']??'')),['super admin','super administrator'],true)):?><a class="<?=admin_nav_active(['database_export.php'])?>" href="database_export.php">Database Export</a><a class="<?=admin_nav_active(['deployment.php'])?>" href="deployment.php">Deployment</a><?php endif;?><a href="logout.php">Logout</a></div></div>
+<div class="admin-hover-group"><button type="button">Administration</button><div class="admin-hover-menu"><a class="<?=admin_nav_active(['users.php','user_edit.php'])?>" href="users.php">Users</a><a class="<?=admin_nav_active(['settings.php'])?>" href="settings.php">Settings</a><a class="<?=admin_nav_active(['legal_pages.php','legal_page_edit.php'])?>" href="legal_pages.php">Legal Pages</a><?php if(in_array(normalized_role((string)($user['role']??'')),['super admin','super administrator'],true)):?><a class="<?=admin_nav_active(['database_export.php'])?>" href="database_export.php">Database Export</a><a class="<?=admin_nav_active(['deployment.php'])?>" href="deployment.php">Deployment</a><a class="<?=admin_nav_active(['import_construction_contracts_once.php'])?>" href="import_construction_contracts_once.php">Contract Import</a><?php endif;?><a href="logout.php">Logout</a></div></div>
 <?php else:?><a class="admin-top-link" href="logout.php">Logout</a><?php endif;?>
 <?php znp_render_workspace_icons('admin'); ?>
 <?php endif; ?>

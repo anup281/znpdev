@@ -7,7 +7,6 @@ $pdo=db();
 
 // AJAX autosave for drag-and-drop ordering.
 if($_SERVER['REQUEST_METHOD']==='POST' && (string)($_POST['action']??'')==='reorder'){
- header('Content-Type: application/json; charset=utf-8');
  try{
   if(!csrf_check((string)($_POST['csrf']??''))) throw new RuntimeException('Session expired. Refresh and try again.');
   $ids=json_decode((string)($_POST['ids']??'[]'),true);
@@ -17,9 +16,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && (string)($_POST['action']??'')==='reor
   $order=10;
   foreach($ids as $id){$id=(int)$id;if($id<1)continue;$stmt->execute([$order,$id]);$order+=10;}
   $pdo->commit();
-  echo json_encode(['ok'=>true,'message'=>'Order saved']);
- }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();http_response_code(422);echo json_encode(['ok'=>false,'message'=>$e->getMessage()]);}
- exit;
+  app_json_result(true,'Order saved');
+ }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();app_json_result(false,$e->getMessage(),[],422);}
 }
 
 $error='';$success=isset($_GET['saved']);

@@ -13,7 +13,7 @@ $project=dev_require_project($projectId);
 
 $assignmentQuery=db()->prepare("SELECT pc.id,pc.trade_role,pc.contract_status,pc.notes,pc.created_at,pc.updated_at,c.id company_id,c.company_name,c.primary_contact,c.cell_phone,c.office_phone,c.email,c.website,c.license_number FROM construction_project_companies pc JOIN construction_companies c ON c.id=pc.construction_company_id WHERE pc.construction_project_id=? ORDER BY pc.id");
 $assignmentQuery->execute([$projectId]);
-$contactQuery=db()->prepare('SELECT id,name,title,phone,email,contact_type,is_primary FROM construction_vendor_contacts WHERE construction_company_id=? AND is_active=1 ORDER BY is_primary DESC,id');
+$contactQuery=db()->prepare('SELECT id,name,title,phone,email,is_primary FROM construction_vendor_contacts WHERE construction_company_id=? AND is_active=1 ORDER BY is_primary DESC,id');
 $assignments=[];
 foreach($assignmentQuery->fetchAll()?:[] as $assignment){
     $contactQuery->execute([(int)$assignment['company_id']]);
@@ -38,7 +38,7 @@ foreach($assignmentQuery->fetchAll()?:[] as $assignment){
             'title'=>(string)($contact['title']??''),
             'phone'=>(string)($contact['phone']??''),
             'email'=>(string)($contact['email']??''),
-            'contact_type'=>(string)($contact['contact_type']??'other'),
+            'contact_type'=>(bool)($contact['is_primary']??false)?'primary':'other',
             'is_primary'=>(bool)($contact['is_primary']??false),
         ],$contactQuery->fetchAll()?:[]),
         'created_at'=>(string)($assignment['created_at']??''),

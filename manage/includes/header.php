@@ -6,7 +6,10 @@ $managementActiveProperty=null;foreach($managementProperties as $managementPrope
 $managementShowsBankDeposits=!$managementActiveProperty||!array_key_exists('participates_bank_deposits',$managementActiveProperty)||!empty($managementActiveProperty['participates_bank_deposits']);
 $managementReturnParams=$_GET;unset($managementReturnParams['property_id']);
 $managementReturnTo=basename((string)($_SERVER['PHP_SELF']??'index.php')).($managementReturnParams?'?'.http_build_query($managementReturnParams):'');
-?><?php znp_workspace_document_start('ZNP Management', 'management-body', '/manage/assets/manage.css', znp_asset_version().'-bank-participation38'); ?>
+$managementStylesheetPath=__DIR__.'/../assets/manage.css';
+$managementStylesheetModified=is_file($managementStylesheetPath)?filemtime($managementStylesheetPath):false;
+$managementStylesheetVersion=znp_asset_version().'-manage'.($managementStylesheetModified!==false?'-'.$managementStylesheetModified:'');
+?><?php znp_workspace_document_start('ZNP Management', 'management-body', '/manage/assets/manage.css', $managementStylesheetVersion); ?>
 <header class="management-top admin-top znp-workspace-top">
   <?php znp_render_workspace_brand('Management', '/manage/', 'ZNP Management Dashboard', 'management-brand admin-brand'); ?>
   <div class="management-mobile-header-icons"><?php znp_render_workspace_icons('management'); ?></div>

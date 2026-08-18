@@ -101,6 +101,7 @@
 .admin-portal-button-logout i{background:#7f2f2f}
 .admin-portal-button-logout:hover,
 .admin-portal-button-logout:focus-visible{border-color:#b88a8a}
+
 @media(max-width:1050px){
   .admin-portal-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

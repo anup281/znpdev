@@ -104,6 +104,8 @@ body main>.projects-blueprint+.section{padding:100px 0;background:var(--zpr-crea
 .contact-form input,.contact-form select,.contact-form textarea{padding:15px 0;border:0;border-bottom:1px solid rgba(7,26,45,.25);border-radius:0;background:transparent;color:var(--zpr-ink)}
 .contact-form input:focus,.contact-form select:focus,.contact-form textarea:focus{border-color:var(--zpr-gold);box-shadow:none}
 .contact-form textarea{min-height:140px}
+.contact-form .contact-captcha{max-width:320px}
+.contact-form .contact-captcha small{display:block;margin-top:8px;color:var(--zpr-muted);font-size:12px;line-height:1.45}
 .contact-form button.primary{min-width:210px;margin-top:12px;border-color:var(--zpr-gold);border-radius:0;background:var(--zpr-gold);color:var(--zpr-navy);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 .status{border-radius:0}
 

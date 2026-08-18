@@ -23,9 +23,27 @@ function znp_deployment_paths(): array
     ];
 }
 
-function znp_deployment_is_preserved(string $name): bool
+function znp_deployment_is_preserved(string $name, bool $preserveVendor = false): bool
 {
-    return in_array($name, ['test', 'backup'], true);
+    return in_array($name, ['test', 'backup'], true) || ($preserveVendor && $name === 'vendor');
+}
+
+function znp_deployment_composer_fingerprint(string $root): ?string
+{
+    $lock = $root.DIRECTORY_SEPARATOR.'composer.lock';
+    $json = $root.DIRECTORY_SEPARATOR.'composer.json';
+    $manifest = is_file($lock) ? $lock : (is_file($json) ? $json : null);
+    if ($manifest === null) return null;
+    $hash = hash_file('sha256', $manifest);
+    if ($hash === false) throw new RuntimeException('The Composer dependency manifest could not be read.');
+    return $hash;
+}
+
+function znp_deployment_vendor_required(array $paths): bool
+{
+    if (!is_file($paths['source'].DIRECTORY_SEPARATOR.'composer.json')) return false;
+    if (!is_file($paths['production'].DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php')) return true;
+    return znp_deployment_composer_fingerprint($paths['source']) !== znp_deployment_composer_fingerprint($paths['production']);
 }
 
 function znp_deployment_format_bytes(int $bytes): string
@@ -36,19 +54,25 @@ function znp_deployment_format_bytes(int $bytes): string
     return number_format($bytes).' bytes';
 }
 
-function znp_deployment_tree_stats(string $root, bool $production): array
+function znp_deployment_tree_stats(string $root, bool $production, bool $skipVendor = false): array
 {
     $files = 0;
     $directories = 0;
     $bytes = 0;
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::SELF_FIRST
+    $directory = new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS);
+    $filter = new RecursiveCallbackFilterIterator(
+        $directory,
+        static function (SplFileInfo $item) use ($root, $production, $skipVendor): bool {
+            $relative = substr($item->getPathname(), strlen($root) + 1);
+            $topLevel = strtok(str_replace('\\', '/', $relative), '/');
+            if ($production && znp_deployment_is_preserved((string)$topLevel, $skipVendor)) return false;
+            if (!$production && $skipVendor && $topLevel === 'vendor') return false;
+            return true;
+        }
     );
+    $iterator = new RecursiveIteratorIterator($filter, RecursiveIteratorIterator::SELF_FIRST);
     foreach ($iterator as $item) {
         $relative = substr($item->getPathname(), strlen($root) + 1);
-        $topLevel = strtok(str_replace('\\', '/', $relative), '/');
-        if ($production && znp_deployment_is_preserved((string)$topLevel)) continue;
         if ($item->isLink()) {
             throw new RuntimeException('Symbolic links are not supported: '.$relative);
         }
@@ -62,7 +86,7 @@ function znp_deployment_tree_stats(string $root, bool $production): array
     return ['files' => $files, 'directories' => $directories, 'bytes' => $bytes];
 }
 
-function znp_deployment_preflight(): array
+function znp_deployment_preflight(bool $includeVendorWorkload = false): array
 {
     $paths = znp_deployment_paths();
     if (!class_exists(ZipArchive::class)) {
@@ -89,7 +113,9 @@ function znp_deployment_preflight(): array
         throw new RuntimeException('/backup index protection could not be created.');
     }
 
-    $productionStats = znp_deployment_tree_stats($paths['production'], true);
+    $vendorRequired = znp_deployment_vendor_required($paths);
+    $scanVendor = $includeVendorWorkload && $vendorRequired;
+    $productionStats = znp_deployment_tree_stats($paths['production'], true, !$scanVendor);
     $freeBytes = disk_free_space($paths['backup']);
     if ($freeBytes !== false && $freeBytes < ($productionStats['bytes'] + 10485760)) {
         throw new RuntimeException('There is not enough free disk space to create a complete production backup.');
@@ -97,9 +123,11 @@ function znp_deployment_preflight(): array
     return [
         'paths' => $paths,
         'production' => $productionStats,
-        'source' => znp_deployment_tree_stats($paths['source'], false),
+        'source' => znp_deployment_tree_stats($paths['source'], false, !$scanVendor),
         'vendor_ready' => !is_file($paths['source'].DIRECTORY_SEPARATOR.'composer.json')
             || is_file($paths['source'].DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php'),
+        'vendor_required' => $vendorRequired,
+        'vendor_scanned' => $scanVendor,
     ];
 }
 
@@ -139,12 +167,12 @@ function znp_deployment_remove_tree(string $path): void
     if (!@rmdir($path)) throw new RuntimeException('Could not remove '.$path.'.');
 }
 
-function znp_deployment_clear_production(string $production): void
+function znp_deployment_clear_production(string $production, bool $preserveVendor = false): void
 {
     $entries = scandir($production);
     if ($entries === false) throw new RuntimeException('Could not read the production document root.');
     foreach ($entries as $entry) {
-        if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry)) continue;
+        if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry, $preserveVendor)) continue;
         znp_deployment_remove_tree($production.DIRECTORY_SEPARATOR.$entry);
     }
 }
@@ -194,9 +222,9 @@ function znp_deployment_verify_copy(string $source, string $destination): void
     }
 }
 
-function znp_deployment_restore(string $production, string $backupZip): void
+function znp_deployment_restore(string $production, string $backupZip, bool $preserveVendor = false): void
 {
-    znp_deployment_clear_production($production);
+    znp_deployment_clear_production($production, $preserveVendor);
     $zip = new ZipArchive();
     if ($zip->open($backupZip) !== true) throw new RuntimeException('The rollback backup could not be opened.');
     if (!$zip->extractTo($production)) {
@@ -210,8 +238,10 @@ function znp_deployment_run(): array
 {
     @set_time_limit(0);
     @ignore_user_abort(true);
-    $preflight = znp_deployment_preflight();
+    $preflight = znp_deployment_preflight(true);
     $paths = $preflight['paths'];
+    $vendorRequired = (bool)$preflight['vendor_required'];
+    $preserveVendor = !$vendorRequired;
     $lockPath = $paths['backup'].DIRECTORY_SEPARATOR.'.deployment.lock';
     $lock = fopen($lockPath, 'c+');
     if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
@@ -232,7 +262,7 @@ function znp_deployment_run(): array
         $entries = scandir($paths['production']);
         if ($entries === false) throw new RuntimeException('The production document root could not be read.');
         foreach ($entries as $entry) {
-            if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry)) continue;
+            if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry, $preserveVendor)) continue;
             znp_deployment_add_to_zip($zip, $paths['production'], $paths['production'].DIRECTORY_SEPARATOR.$entry);
         }
         if (!$zip->close() || !is_file($partialZip)) throw new RuntimeException('The production backup could not be finalized.');
@@ -246,18 +276,18 @@ function znp_deployment_run(): array
         $verify->close();
 
         $deploymentStarted = true;
-        znp_deployment_clear_production($paths['production']);
+        znp_deployment_clear_production($paths['production'], $preserveVendor);
         $sourceEntries = scandir($paths['source']);
         if ($sourceEntries === false) throw new RuntimeException('/test could not be read for promotion.');
         foreach ($sourceEntries as $entry) {
-            if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry)) continue;
+            if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry, $preserveVendor)) continue;
             znp_deployment_copy_tree(
                 $paths['source'].DIRECTORY_SEPARATOR.$entry,
                 $paths['production'].DIRECTORY_SEPARATOR.$entry
             );
         }
         foreach ($sourceEntries as $entry) {
-            if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry)) continue;
+            if ($entry === '.' || $entry === '..' || znp_deployment_is_preserved($entry, $preserveVendor)) continue;
             znp_deployment_verify_copy(
                 $paths['source'].DIRECTORY_SEPARATOR.$entry,
                 $paths['production'].DIRECTORY_SEPARATOR.$entry
@@ -271,13 +301,14 @@ function znp_deployment_run(): array
             'backup' => basename($backupZip),
             'production' => $preflight['production'],
             'source' => $preflight['source'],
+            'vendor_deployed' => $vendorRequired,
         ];
     } catch (Throwable $exception) {
         if ($zip instanceof ZipArchive) $zip->close();
         @unlink($partialZip);
         if ($deploymentStarted && is_file($backupZip)) {
             try {
-                znp_deployment_restore($paths['production'], $backupZip);
+                znp_deployment_restore($paths['production'], $backupZip, $preserveVendor);
             } catch (Throwable $rollbackException) {
                 throw new RuntimeException(
                     'Deployment failed and automatic rollback also failed. Deployment error: '

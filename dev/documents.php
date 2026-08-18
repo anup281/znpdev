@@ -6,7 +6,7 @@ $p=dev_require_project($projectId);
 $error='';
 $success='';
 $permitsReady=false;
-try{$permitsReady=(bool)db()->query("SHOW TABLES LIKE 'construction_project_permits'")->fetchColumn();}catch(Throwable $e){error_log('Construction permits table check failed: '.$e->getMessage());}
+try{$permitsReady=db_table_exists('construction_project_permits');}catch(Throwable $e){error_log('Construction permits table check failed: '.$e->getMessage());}
 
 if(isset($_GET['uploaded']) && $_GET['uploaded']==='1'){
     $success='Project document uploaded successfully.';

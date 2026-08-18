@@ -47,7 +47,20 @@ function dev_can_access(int $projectId): bool {
     $s=db()->prepare('SELECT 1 FROM construction_project_users WHERE construction_project_id=? AND admin_user_id=? AND is_active=1');
     $s->execute([$projectId,(int)$u['id']]); return (bool)$s->fetchColumn();
 }
+function dev_ensure_project_details_schema(): void {
+    static $ready=false;if($ready)return;$ready=true;
+    $columns=[
+        'project_address'=>"VARCHAR(500) NOT NULL DEFAULT ''",
+        'project_owner_name'=>"VARCHAR(190) NOT NULL DEFAULT ''",
+        'project_owner_email'=>"VARCHAR(190) NOT NULL DEFAULT ''",
+        'project_owner_phone'=>"VARCHAR(60) NOT NULL DEFAULT ''",
+        'project_gc'=>"VARCHAR(255) NOT NULL DEFAULT ''",
+        'project_bank'=>"VARCHAR(255) NOT NULL DEFAULT ''",
+    ];
+    foreach($columns as $name=>$definition)if(!db()->query("SHOW COLUMNS FROM construction_projects LIKE ".db()->quote($name))->fetchColumn())db()->exec("ALTER TABLE construction_projects ADD COLUMN `$name` $definition");
+}
 function dev_projects(bool $archived=false): array {
+    dev_ensure_project_details_schema();
     $u=admin_user();
     $archiveValue=$archived?1:0;
     if(dev_is_super()) {
@@ -57,7 +70,7 @@ function dev_projects(bool $archived=false): array {
     $s=db()->prepare('SELECT cp.*,p.project_name AS public_project_name FROM construction_projects cp JOIN construction_project_users cpu ON cpu.construction_project_id=cp.id AND cpu.admin_user_id=? AND cpu.is_active=1 LEFT JOIN projects p ON p.id=cp.public_project_id WHERE cp.is_archived=? ORDER BY cp.updated_at DESC,cp.project_name');
     $s->execute([(int)$u['id'],$archiveValue]); return $s->fetchAll();
 }
-function dev_project(int $id): ?array { $s=db()->prepare('SELECT cp.*,p.project_name AS public_project_name FROM construction_projects cp LEFT JOIN projects p ON p.id=cp.public_project_id WHERE cp.id=?');$s->execute([$id]);$r=$s->fetch();return $r?:null; }
+function dev_project(int $id): ?array { dev_ensure_project_details_schema();$s=db()->prepare('SELECT cp.*,p.project_name AS public_project_name FROM construction_projects cp LEFT JOIN projects p ON p.id=cp.public_project_id WHERE cp.id=?');$s->execute([$id]);$r=$s->fetch();return $r?:null; }
 function dev_project_statuses(bool $includeArchived=true): array {
     $statuses=['Planning','Preconstruction','Under Construction','Nearing Completion','Lease-Up','Completed'];
     if($includeArchived)$statuses[]='Archived';
@@ -95,7 +108,7 @@ function dev_upload(array $file,string $folder,array $allowed,int $max=15728640)
     if(!move_uploaded_file((string)$file['tmp_name'],$path))throw new RuntimeException('Could not save the uploaded file.');
     return ['path'=>'uploads/dev/'.$folder.'/'.$safe,'name'=>(string)$file['name'],'mime'=>$mime,'size'=>(int)$file['size']];
 }
-function dev_upload_many(array $files,string $folder,array $allowed,int $max=15728640): array {$out=[]; $names=$files['name']??[];if(!is_array($names)) { $one=dev_upload($files,$folder,$allowed,$max); return $one?[$one]:[]; }foreach($names as $i=>$name){$f=['name'=>$name,'type'=>$files['type'][$i]??'','tmp_name'=>$files['tmp_name'][$i]??'','error'=>$files['error'][$i]??UPLOAD_ERR_NO_FILE,'size'=>$files['size'][$i]??0];$one=dev_upload($f,$folder,$allowed,$max); if($one)$out[]=$one;}return $out;}
+function dev_upload_many(array $files,string $folder,array $allowed,int $max=15728640): array {$out=[];foreach(app_uploaded_file_entries($files) as $file){$one=dev_upload($file,$folder,$allowed,$max);if($one)$out[]=$one;}return $out;}
 function dev_schedule_template_items(string $scope): array {
     $scope = ucfirst(strtolower(trim($scope)));
     if (!in_array($scope, ['Project', 'Building'], true)) {
@@ -149,7 +162,7 @@ function dev_compress_image(array $file,string $folder='daily-logs',int $maxByte
     if(!$ok)throw new RuntimeException(in_array($ext,['heic','heif'],true)?'HEIC conversion is unavailable on this server. Enable ImageMagick with HEIC support.':'The image could not be processed.');
     return ['path'=>'uploads/dev/'.$folder.'/'.basename($dest),'name'=>(string)$file['name'],'mime'=>'image/jpeg','size'=>(int)filesize($dest)];
 }
-function dev_compress_images(array $files,string $folder='daily-logs'): array {$out=[];$names=$files['name']??[];if(!is_array($names)){$one=dev_compress_image($files,$folder);return $one?[$one]:[];}foreach($names as $i=>$name){$f=['name'=>$name,'type'=>$files['type'][$i]??'','tmp_name'=>$files['tmp_name'][$i]??'','error'=>$files['error'][$i]??UPLOAD_ERR_NO_FILE,'size'=>$files['size'][$i]??0];$one=dev_compress_image($f,$folder);if($one)$out[]=$one;}return $out;}
+function dev_compress_images(array $files,string $folder='daily-logs'): array {$out=[];foreach(app_uploaded_file_entries($files) as $file){$one=dev_compress_image($file,$folder);if($one)$out[]=$one;}return $out;}
 
 
 function dev_active_project_id(int $candidate=0): int {

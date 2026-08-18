@@ -5,26 +5,17 @@ require_admin();
 
 function autosave_json(array $payload, int $status = 200): void
 {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    echo json_encode($payload, JSON_UNESCAPED_SLASHES);
-    exit;
+    app_json_response($payload,$status,true);
 }
 
 function autosave_extended_ready(): bool
 {
-    try { return (bool)db()->query("SHOW TABLES LIKE 'contact_extended_fields'")->fetchColumn(); }
-    catch (Throwable $e) { return false; }
+    return db_schema_ready(['contact_extended_fields']);
 }
 
 function autosave_projects_ready(): bool
 {
-    try { return (bool)db()->query("SHOW TABLES LIKE 'contact_project_interests'")->fetchColumn(); }
-    catch (Throwable $e) { return false; }
+    return db_schema_ready(['contact_project_interests']);
 }
 
 function autosave_extended_row(string $recordType, int $recordId): array

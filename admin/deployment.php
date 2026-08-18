@@ -52,6 +52,7 @@ require __DIR__.'/_header.php';
  <p><strong>Backup:</strong> /backup/<?=e((string)$result['backup'])?></p>
  <p><strong>Previous production:</strong> <?=number_format((int)$result['production']['files'])?> files, <?=e(znp_deployment_format_bytes((int)$result['production']['bytes']))?></p>
  <p><strong>Promoted from /test:</strong> <?=number_format((int)$result['source']['files'])?> files, <?=e(znp_deployment_format_bytes((int)$result['source']['bytes']))?></p>
+ <p><strong>Composer vendor:</strong> <?=$result['vendor_deployed']?'Deployed because dependencies changed':'Preserved — dependencies unchanged'?></p>
 </section>
 <?php endif;?>
 
@@ -60,6 +61,7 @@ require __DIR__.'/_header.php';
  <ul>
   <li>Only the server document root is treated as production.</li>
   <li>The <strong>/test</strong> and <strong>/backup</strong> folders are always preserved.</li>
+  <li><strong>/vendor</strong> is preserved unless Composer dependencies changed or production is missing its autoloader.</li>
   <li>Current production files are archived before any production file is removed.</li>
   <li>If promotion fails, the new backup is restored automatically.</li>
   <li>Symbolic links or ambiguous directory layouts stop the deployment.</li>
@@ -73,16 +75,16 @@ require __DIR__.'/_header.php';
   <div><strong>Production root</strong><p><?=e((string)$preflight['paths']['production'])?></p></div>
   <div><strong>Deployment source</strong><p><?=e((string)$preflight['paths']['source'])?></p></div>
   <div><strong>Backup folder</strong><p><?=e((string)$preflight['paths']['backup'])?></p></div>
-  <div><strong>Composer dependencies</strong><p><?=$preflight['vendor_ready']?'Ready — /vendor/autoload.php found':'Missing'?></p></div>
-  <div><strong>Production backup size</strong><p><?=number_format((int)$preflight['production']['files'])?> files · <?=e(znp_deployment_format_bytes((int)$preflight['production']['bytes']))?></p></div>
-  <div><strong>Test deployment size</strong><p><?=number_format((int)$preflight['source']['files'])?> files · <?=e(znp_deployment_format_bytes((int)$preflight['source']['bytes']))?></p></div>
+  <div><strong>Composer dependencies</strong><p><?=$preflight['vendor_ready']?($preflight['vendor_required']?'Ready — vendor deployment required':'Ready — unchanged, vendor will be preserved'):'Missing'?></p></div>
+  <div><strong>Production backup size</strong><p><?=number_format((int)$preflight['production']['files'])?> files · <?=e(znp_deployment_format_bytes((int)$preflight['production']['bytes']))?><?=$preflight['vendor_scanned']?'':' · vendor excluded from page scan'?></p></div>
+  <div><strong>Test deployment size</strong><p><?=number_format((int)$preflight['source']['files'])?> files · <?=e(znp_deployment_format_bytes((int)$preflight['source']['bytes']))?><?=$preflight['vendor_scanned']?'':' · vendor excluded from page scan'?></p></div>
  </div>
 </section>
 
 <form method="post" class="settings-card admin-form" onsubmit="return confirm('Deploy /test to production now? The current production files will be replaced after the backup is verified.');">
  <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
  <h2>Deploy /test to Production</h2>
- <p>This operation replaces every production-root file and folder except <strong>/test</strong> and <strong>/backup</strong>.</p>
+ <p>This operation replaces production application files while preserving <strong>/test</strong>, <strong>/backup</strong>, and unchanged Composer <strong>/vendor</strong> dependencies.</p>
  <label>Confirmation Phrase
   <input name="confirmation" autocomplete="off" placeholder="DEPLOY TEST TO PRODUCTION" required>
   <small class="admin-help-text">Enter: DEPLOY TEST TO PRODUCTION</small>

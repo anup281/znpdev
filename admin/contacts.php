@@ -33,14 +33,7 @@ $error = '';
 
 function contacts_json_response(array $payload, int $status = 200): void
 {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    echo json_encode($payload, JSON_UNESCAPED_SLASHES);
-    exit;
+    app_json_response($payload,$status,true);
 }
 
 function contacts_redirect(string $query = ''): void
@@ -52,20 +45,12 @@ function contacts_redirect(string $query = ''): void
 
 function contact_project_interests_ready(): bool
 {
-    try {
-        return (bool)db()->query("SHOW TABLES LIKE 'contact_project_interests'")->fetchColumn();
-    } catch (Throwable $e) {
-        return false;
-    }
+    return db_schema_ready(['contact_project_interests']);
 }
 
 function contact_newsletter_table_ready(): bool
 {
-    try {
-        return (bool)db()->query("SHOW TABLES LIKE 'newsletter_subscribers'")->fetchColumn();
-    } catch (Throwable $e) {
-        return false;
-    }
+    return db_schema_ready(['newsletter_subscribers']);
 }
 
 function contact_record_for_newsletter(string $recordType, int $recordId): ?array
@@ -91,11 +76,7 @@ function contact_newsletter_subscriber(string $email): ?array
 
 function contact_extended_fields_ready(): bool
 {
-    try {
-        return (bool)db()->query("SHOW TABLES LIKE 'contact_extended_fields'")->fetchColumn();
-    } catch (Throwable $e) {
-        return false;
-    }
+    return db_schema_ready(['contact_extended_fields']);
 }
 
 function contact_extended_fields_row(string $recordType, int $recordId): array

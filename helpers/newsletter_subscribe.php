@@ -14,10 +14,7 @@ function newsletter_signup_response(bool $ok, string $message, string $code = ''
 {
     global $isJson;
     if ($isJson) {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => $ok, 'message' => $message, 'code' => $code], JSON_UNESCAPED_SLASHES);
-        exit;
+        app_json_result($ok,$message,['code'=>$code],$status);
     }
 
     $back = (string)($_SERVER['HTTP_REFERER'] ?? app_url('/'));
